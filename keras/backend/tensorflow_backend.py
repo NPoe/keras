@@ -1764,7 +1764,7 @@ def spatial_3d_padding(x, padding=(1, 1, 1), dim_ordering='default'):
     return tf.pad(x, pattern)
 
 
-def stack(x):
+def stack(x, axis = 0):
     """Stacks a list of rank `R` tensors into a rank `R+1` tensor.
 
     # Arguments
@@ -1774,9 +1774,9 @@ def stack(x):
         A tensor.
     """
     try:
-        return tf.stack(x)
+        return tf.stack(x, axis = axis)
     except AttributeError:
-        return tf.pack(x)
+        return tf.pack(x, axis = axis)
 
 
 def one_hot(indices, nb_classes):
@@ -2199,7 +2199,7 @@ def rnn(step_function, inputs, initial_states,
 
     axes = [1, 0] + list(range(2, len(outputs.get_shape())))
     outputs = tf.transpose(outputs, axes)
-    return last_output, outputs, new_states
+    return last_output, outputs, new_states, [] # TODO!
 
 
 def _cond(condition, then_lambda, else_lambda):
