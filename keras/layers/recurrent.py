@@ -235,7 +235,7 @@ class Recurrent(Layer):
         constants = self.get_constants(x)
         preprocessed_input = self.preprocess_input(x)
 
-        last_output, outputs, states = K.rnn(self.step, preprocessed_input,
+        last_output, outputs, last_states, states = K.rnn(self.step, preprocessed_input,
                                              initial_states,
                                              go_backwards=self.go_backwards,
                                              mask=mask,
@@ -244,8 +244,8 @@ class Recurrent(Layer):
                                              input_length=input_shape[1])
         if self.stateful:
             updates = []
-            for i in range(len(states)):
-                updates.append((self.states[i], states[i]))
+            for i in range(len(last_states)):
+                updates.append((self.states[i], last_states[i]))
             self.add_update(updates, x)
 
         if self.return_sequences:
@@ -267,6 +267,61 @@ class Recurrent(Layer):
 
         base_config = super(Recurrent, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+class StateRecurrent(Recurrent):
+    def __init__(self, numstates=0, **kwargs):
+        self.numstates = numstates
+        super(StateRecurrent, self).__init__(**kwargs)
+
+    def get_output_shape_for(self, input_shape):
+        if self.return_sequences:
+            return (input_shape[0], input_shape[1], self.numstates, self.output_dim)
+        else:
+            return (input_shape[0], self.numstates, self.output_dim)
+    
+    def call(self, x, mask=None):
+        # input shape: (nb_samples, time (padded with zeros), input_dim)
+        # note that the .build() method of subclasses MUST define
+        # self.input_spec with a complete input shape.
+        input_shape = K.int_shape(x)
+        if self.unroll and input_shape[1] is None:
+            raise ValueError('Cannot unroll a RNN if the '
+                             'time dimension is undefined. \n'
+                             '- If using a Sequential model, '
+                             'specify the time dimension by passing '
+                             'an `input_shape` or `batch_input_shape` '
+                             'argument to your first layer. If your '
+                             'first layer is an Embedding, you can '
+                             'also use the `input_length` argument.\n'
+                             '- If using the functional API, specify '
+                             'the time dimension by passing a `shape` '
+                             'or `batch_shape` argument to your Input layer.')
+        if self.stateful:
+            initial_states = self.states
+        else:
+            initial_states = self.get_initial_states(x)
+        
+        constants = self.get_constants(x)
+        preprocessed_input = self.preprocess_input(x)
+
+        last_output, outputs, last_states, states = K.rnn(self.step, preprocessed_input,
+                                             initial_states,
+                                             go_backwards=self.go_backwards,
+                                             mask=mask,
+                                             constants=constants,
+                                             unroll=self.unroll,
+                                             input_length=input_shape[1])
+        if self.stateful:
+            updates = []
+            for i in range(len(last_states)):
+                updates.append((self.states[i], last_states[i]))
+            self.add_update(updates, x)
+
+       if self.return_sequences:
+            return K.stack(states, axis = 2)
+
+       else:
+            return K.stack(last_states, axis = 2)
 
 
 class SimpleRNN(Recurrent):
