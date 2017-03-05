@@ -873,8 +873,8 @@ def spatial_3d_padding(x, padding=(1, 1, 1), dim_ordering='default'):
     return T.set_subtensor(output[indices], x)
 
 
-def stack(x):
-    return T.stack(*x)
+def stack(x, axis = 0):
+    return T.stack(*x, axis = axis)
 
 
 def one_hot(indices, nb_classes):
@@ -1017,8 +1017,11 @@ def rnn(step_function, inputs, initial_states,
             outputs: tensor with shape (samples, time, ...) where each
                 entry outputs[s, t] is the output of the step function
                 at time t for sample s.
-            new_states: list of tensors, latest states returned by
+            last_states: list of tensors, latest states returned by
                 the step function, of shape (samples, ...).
+            states: list of tensors with shape (samples, time, ...), where each entry
+                states[n, s, t] is the output of the step function at time
+                t for sample s of state n
     """
     ndim = inputs.ndim
     assert ndim >= 3, 'Input should be at least 3D.'
@@ -1145,11 +1148,12 @@ def rnn(step_function, inputs, initial_states,
 
     outputs = T.squeeze(outputs)
     last_output = outputs[-1]
+    last_states = [T.squeeze(state[-1]) for state in states]
 
     axes = [1, 0] + list(range(2, outputs.ndim))
     outputs = outputs.dimshuffle(axes)
-    states = [T.squeeze(state[-1]) for state in states]
-    return last_output, outputs, states
+    states = [state.dimshuffle(axes) for state in states]
+    return last_output, outputs, last_states, states
 
 
 def switch(condition, then_expression, else_expression):
