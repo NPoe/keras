@@ -162,7 +162,7 @@ class ConvRecurrent2D(Layer):
         constants = self.get_constants(x)
         preprocessed_input = self.preprocess_input(x)
 
-        last_output, outputs, states = K.rnn(self.step, preprocessed_input,
+        last_output, outputs, states, _ = K.rnn(self.step, preprocessed_input,
                                              initial_states,
                                              go_backwards=self.go_backwards,
                                              mask=mask,

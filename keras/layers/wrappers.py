@@ -109,7 +109,7 @@ class TimeDistributed(Wrapper):
                 output = self.layer.call(x)
                 return output, []
 
-            _, outputs, _ = K.rnn(step, inputs,
+            _, outputs, _, _ = K.rnn(step, inputs,
                                   initial_states=[],
                                   input_length=input_shape[1],
                                   unroll=False)
