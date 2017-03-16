@@ -35,6 +35,28 @@ def test_return_sequences(layer_class):
                        'return_sequences': True},
                input_shape=(nb_samples, timesteps, embedding_dim))
 
+@rnn_test
+def test_return_all_states(layer_class):
+    layer_test(layer_class,
+               kwargs={'output_dim': output_dim,
+                       'return_sequences': True,
+                       'return_all_states': True},
+               input_shape=(nb_samples, timesteps, embedding_dim))
+    
+    layer1 = layer_class(output_dim, input_dim=embedding_dim, return_all_states=True)
+    model1 = Sequential()
+    model1.add(layer1)
+    model1.compile(optimizer='sgd', loss='mse')
+    out1 = model1.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+    assert(out1.shape == (nb_samples, layer1.num_states, output_dim))
+    
+    layer2 = layer_class(output_dim, input_dim=embedding_dim, return_all_states=True, return_sequences=True)
+    model2 = Sequential()
+    model2.add(layer2)
+    model2.compile(optimizer='sgd', loss='mse')
+    out2 = model2.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+    assert(out2.shape == (nb_samples, timesteps, layer2.num_states, output_dim))
+
 
 @rnn_test
 def test_dynamic_behavior(layer_class):
