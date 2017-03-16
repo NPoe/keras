@@ -165,8 +165,9 @@ class Recurrent(Layer):
     def __init__(self, weights=None,
                  return_sequences=False, go_backwards=False, stateful=False,
                  unroll=False, consume_less='cpu',
-                 input_dim=None, input_length=None, **kwargs):
+                 input_dim=None, input_length=None, return_all_states=False, **kwargs):
         self.return_sequences = return_sequences
+        self.return_all_states = return_all_states
         self.initial_weights = weights
         self.go_backwards = go_backwards
         self.stateful = stateful
@@ -183,9 +184,15 @@ class Recurrent(Layer):
 
     def get_output_shape_for(self, input_shape):
         if self.return_sequences:
-            return (input_shape[0], input_shape[1], self.output_dim)
+            if self.return_all_states:
+                return (input_shape[0], input_shape[1], self.num_states, self.output_dim)
+            else:
+                return (input_shape[0], input_shape[1], self.output_dim)
         else:
-            return (input_shape[0], self.output_dim)
+            if self.return_all_states:
+                return (input_shape[0], self.num_states, self.output_dim)
+            else:
+                return (input_shape[0], self.output_dim)
 
     def compute_mask(self, input, mask):
         if self.return_sequences:
@@ -249,12 +256,19 @@ class Recurrent(Layer):
             self.add_update(updates, x)
 
         if self.return_sequences:
-            return outputs
+            if self.return_all_states:
+                return K.stack(states, axis = 2)
+            else:
+                return outputs
         else:
-            return last_output
+            if self.return_all_states:
+                return K.stack(last_states, axis = 1)
+            else:
+                return last_output
 
     def get_config(self):
         config = {'return_sequences': self.return_sequences,
+                  'return_all_states': self.return_all_states,
                   'go_backwards': self.go_backwards,
                   'stateful': self.stateful,
                   'unroll': self.unroll,
@@ -268,61 +282,19 @@ class Recurrent(Layer):
         base_config = super(Recurrent, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-class StateRecurrent(Recurrent):
-    def __init__(self, numstates=0, **kwargs):
-        self.numstates = numstates
-        super(StateRecurrent, self).__init__(**kwargs)
+    def reset_states(self):
+        assert self.stateful, 'Layer must be stateful.'
+        input_shape = self.input_spec[0].shape
+        if not input_shape[0]:
+            raise ValueError('If a RNN is stateful, a complete ' +
+                             'input_shape must be provided (including batch size).')
 
-    def get_output_shape_for(self, input_shape):
-        if self.return_sequences:
-            return (input_shape[0], input_shape[1], self.numstates, self.output_dim)
+        if hasattr(self, 'states'):
+            for i in range(self.num_states):
+                K.set_value(self.states[i],
+                        np.zeros((input_shape[0], self.output_dim)))
         else:
-            return (input_shape[0], self.numstates, self.output_dim)
-    
-    def call(self, x, mask=None):
-        # input shape: (nb_samples, time (padded with zeros), input_dim)
-        # note that the .build() method of subclasses MUST define
-        # self.input_spec with a complete input shape.
-        input_shape = K.int_shape(x)
-        if self.unroll and input_shape[1] is None:
-            raise ValueError('Cannot unroll a RNN if the '
-                             'time dimension is undefined. \n'
-                             '- If using a Sequential model, '
-                             'specify the time dimension by passing '
-                             'an `input_shape` or `batch_input_shape` '
-                             'argument to your first layer. If your '
-                             'first layer is an Embedding, you can '
-                             'also use the `input_length` argument.\n'
-                             '- If using the functional API, specify '
-                             'the time dimension by passing a `shape` '
-                             'or `batch_shape` argument to your Input layer.')
-        if self.stateful:
-            initial_states = self.states
-        else:
-            initial_states = self.get_initial_states(x)
-        
-        constants = self.get_constants(x)
-        preprocessed_input = self.preprocess_input(x)
-
-        last_output, outputs, last_states, states = K.rnn(self.step, preprocessed_input,
-                                             initial_states,
-                                             go_backwards=self.go_backwards,
-                                             mask=mask,
-                                             constants=constants,
-                                             unroll=self.unroll,
-                                             input_length=input_shape[1])
-        if self.stateful:
-            updates = []
-            for i in range(len(last_states)):
-                updates.append((self.states[i], last_states[i]))
-            self.add_update(updates, x)
-
-       if self.return_sequences:
-            return K.stack(states, axis = 2)
-
-       else:
-            return K.stack(last_states, axis = 2)
-
+            self.states = [K.zeros((input_shape[0], self.output_dim)) for _ in range(self.num_states)]
 
 class SimpleRNN(Recurrent):
     """Fully-connected RNN where the output is to be fed back to input.
@@ -354,6 +326,7 @@ class SimpleRNN(Recurrent):
                  activation='tanh',
                  W_regularizer=None, U_regularizer=None, b_regularizer=None,
                  dropout_W=0., dropout_U=0., **kwargs):
+        self.num_states = 1
         self.output_dim = output_dim
         self.init = initializations.get(init)
         self.inner_init = initializations.get(inner_init)
@@ -374,7 +347,7 @@ class SimpleRNN(Recurrent):
             self.reset_states()
         else:
             # initial states: all-zero tensor of shape (output_dim)
-            self.states = [None]
+            self.states = [None] * self.num_states
         input_dim = input_shape[2]
         self.input_dim = input_dim
 
@@ -396,26 +369,6 @@ class SimpleRNN(Recurrent):
             del self.initial_weights
         self.built = True
 
-    def reset_states(self):
-        assert self.stateful, 'Layer must be stateful.'
-        input_shape = self.input_spec[0].shape
-        if not input_shape[0]:
-            raise ValueError('If a RNN is stateful, it needs to know '
-                             'its batch size. Specify the batch size '
-                             'of your input tensors: \n'
-                             '- If using a Sequential model, '
-                             'specify the batch size by passing '
-                             'a `batch_input_shape` '
-                             'argument to your first layer.\n'
-                             '- If using the functional API, specify '
-                             'the time dimension by passing a '
-                             '`batch_shape` argument to your Input layer.')
-        if hasattr(self, 'states'):
-            K.set_value(self.states[0],
-                        np.zeros((input_shape[0], self.output_dim)))
-        else:
-            self.states = [K.zeros((input_shape[0], self.output_dim))]
-
     def preprocess_input(self, x):
         if self.consume_less == 'cpu':
             input_shape = K.int_shape(x)
@@ -429,8 +382,8 @@ class SimpleRNN(Recurrent):
 
     def step(self, x, states):
         prev_output = states[0]
-        B_U = states[1]
-        B_W = states[2]
+        B_U = states[self.num_states]
+        B_W = states[self.num_states + 1]
 
         if self.consume_less == 'cpu':
             h = x
@@ -521,6 +474,11 @@ class GRU(Recurrent):
         if self.dropout_W or self.dropout_U:
             self.uses_learning_phase = True
         super(GRU, self).__init__(**kwargs)
+        
+        if self.return_all_states:
+            self.num_states = 4
+        else:
+            self.num_states = 1
 
     def build(self, input_shape):
         self.input_spec = [InputSpec(shape=input_shape)]
@@ -529,8 +487,7 @@ class GRU(Recurrent):
         if self.stateful:
             self.reset_states()
         else:
-            # initial states: all-zero tensor of shape (output_dim)
-            self.states = [None]
+            self.states = [None] * self.num_states
 
         if self.consume_less == 'gpu':
             self.W = self.add_weight((self.input_dim, 3 * self.output_dim),
@@ -591,18 +548,6 @@ class GRU(Recurrent):
             del self.initial_weights
         self.built = True
 
-    def reset_states(self):
-        assert self.stateful, 'Layer must be stateful.'
-        input_shape = self.input_spec[0].shape
-        if not input_shape[0]:
-            raise ValueError('If a RNN is stateful, a complete '
-                             'input_shape must be provided '
-                             '(including batch size).')
-        if hasattr(self, 'states'):
-            K.set_value(self.states[0],
-                        np.zeros((input_shape[0], self.output_dim)))
-        else:
-            self.states = [K.zeros((input_shape[0], self.output_dim))]
 
     def preprocess_input(self, x):
         if self.consume_less == 'cpu':
@@ -622,8 +567,8 @@ class GRU(Recurrent):
 
     def step(self, x, states):
         h_tm1 = states[0]  # previous memory
-        B_U = states[1]  # dropout matrices for recurrent units
-        B_W = states[2]
+        B_U = states[self.num_states]  # dropout matrices for recurrent units
+        B_W = states[self.num_states + 1]
 
         if self.consume_less == 'gpu':
 
@@ -656,8 +601,13 @@ class GRU(Recurrent):
             r = self.inner_activation(x_r + K.dot(h_tm1 * B_U[1], self.U_r))
 
             hh = self.activation(x_h + K.dot(r * h_tm1 * B_U[2], self.U_h))
+        
         h = z * h_tm1 + (1 - z) * hh
-        return h, [h]
+        
+        if self.return_all_states:
+            return h, [h, z, r, hh]
+        else:
+            return h, [h]
 
     def get_constants(self, x):
         constants = []
@@ -751,6 +701,11 @@ class LSTM(Recurrent):
         if self.dropout_W or self.dropout_U:
             self.uses_learning_phase = True
         super(LSTM, self).__init__(**kwargs)
+        
+        if self.return_all_states:
+            self.num_states = 6
+        else:
+            self.num_states = 2
 
     def build(self, input_shape):
         self.input_spec = [InputSpec(shape=input_shape)]
@@ -760,7 +715,7 @@ class LSTM(Recurrent):
             self.reset_states()
         else:
             # initial states: 2 all-zero tensors of shape (output_dim)
-            self.states = [None, None]
+            self.states = [None] * self.num_states
 
         if self.consume_less == 'gpu':
             self.W = self.add_weight((self.input_dim, 4 * self.output_dim),
@@ -845,21 +800,6 @@ class LSTM(Recurrent):
             del self.initial_weights
         self.built = True
 
-    def reset_states(self):
-        assert self.stateful, 'Layer must be stateful.'
-        input_shape = self.input_spec[0].shape
-        if not input_shape[0]:
-            raise ValueError('If a RNN is stateful, a complete ' +
-                             'input_shape must be provided (including batch size).')
-        if hasattr(self, 'states'):
-            K.set_value(self.states[0],
-                        np.zeros((input_shape[0], self.output_dim)))
-            K.set_value(self.states[1],
-                        np.zeros((input_shape[0], self.output_dim)))
-        else:
-            self.states = [K.zeros((input_shape[0], self.output_dim)),
-                           K.zeros((input_shape[0], self.output_dim))]
-
     def preprocess_input(self, x):
         if self.consume_less == 'cpu':
             if 0 < self.dropout_W < 1:
@@ -885,8 +825,8 @@ class LSTM(Recurrent):
     def step(self, x, states):
         h_tm1 = states[0]
         c_tm1 = states[1]
-        B_U = states[2]
-        B_W = states[3]
+        B_U = states[self.num_states]
+        B_W = states[self.num_states + 1]
 
         if self.consume_less == 'gpu':
             z = K.dot(x * B_W[0], self.W) + K.dot(h_tm1 * B_U[0], self.U) + self.b
@@ -897,8 +837,9 @@ class LSTM(Recurrent):
             z3 = z[:, 3 * self.output_dim:]
 
             i = self.inner_activation(z0)
-            f = self.inner_activation(z1)
-            c = f * c_tm1 + i * self.activation(z2)
+            f = self.inner_activation(z1); 
+            hh = self.activation(z2)
+            c = f * c_tm1 + i * hh
             o = self.inner_activation(z3)
         else:
             if self.consume_less == 'cpu':
@@ -914,13 +855,17 @@ class LSTM(Recurrent):
             else:
                 raise ValueError('Unknown `consume_less` mode.')
 
+            hh = self.activation(x_c + K.dot(h_tm1 * B_U[2], self.U_c))
             i = self.inner_activation(x_i + K.dot(h_tm1 * B_U[0], self.U_i))
             f = self.inner_activation(x_f + K.dot(h_tm1 * B_U[1], self.U_f))
-            c = f * c_tm1 + i * self.activation(x_c + K.dot(h_tm1 * B_U[2], self.U_c))
+            c = f * c_tm1 + i * hh
             o = self.inner_activation(x_o + K.dot(h_tm1 * B_U[3], self.U_o))
 
         h = o * self.activation(c)
-        return h, [h, c]
+        if self.return_all_states:
+            return h, [h, c, i, f, o, hh]
+        else:
+            return h, [h, c]
 
     def get_constants(self, x):
         constants = []
