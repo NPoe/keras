@@ -874,7 +874,7 @@ def spatial_3d_padding(x, padding=(1, 1, 1), dim_ordering='default'):
 
 
 def stack(x, axis = 0):
-    return T.stack(*x, axis = axis)
+    return T.stack(x, axis = axis)
 
 
 def one_hot(indices, nb_classes):
