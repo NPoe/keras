@@ -5,6 +5,7 @@ from .convolutional import *
 from .pooling import *
 from .local import *
 from .recurrent import *
+from .decomposition import *
 from .normalization import *
 from .embeddings import *
 from .noise import *
