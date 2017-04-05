@@ -26,12 +26,11 @@ def test_ErasureLayer():
     out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
     assert(out.shape == (nb_samples, timesteps, output_dim))
 
-'''
-def test_OmegaLayer():
+def test_GammaLayerGRU():
     model = Sequential()
     model.add(GRU(input_shape=(timesteps, embedding_dim), output_dim = output_dim, \
             return_sequences = True, return_all_states = True))
-    model.add(OmegaLayer())
+    model.add(GammaLayerGRU())
     model.add(TimeDistributed(Dense(output_dim = num_classes, activation = "linear")))
     model.add(TimeDistributed(Lambda(lambda x : K.exp(x))))
 
@@ -39,11 +38,11 @@ def test_OmegaLayer():
     out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
     assert(out.shape == (nb_samples, timesteps, num_classes))
 
-def test_DeltaLayer():
+def test_BetaLayerGRU():
     model = Sequential()
     model.add(GRU(input_shape=(timesteps, embedding_dim), output_dim = output_dim, \
             return_sequences = True, return_all_states = True))
-    model.add(DeltaLayer())
+    model.add(BetaLayerGRU())
     model.add(TimeDistributed(Dense(output_dim = num_classes, activation = "linear")))
     model.add(TimeDistributed(Lambda(lambda x : K.exp(x))))
 
@@ -51,34 +50,11 @@ def test_DeltaLayer():
     out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
     assert(out.shape == (nb_samples, timesteps, num_classes))
 
-def test_PhiLayer():
+def test_BetaLayerLSTM():
     model = Sequential()
     model.add(LSTM(input_shape=(timesteps, embedding_dim), output_dim = output_dim, \
             return_sequences = True, return_all_states = True))
-    model.add(PhiLayer())
-    model.add(TimeDistributed(Dense(output_dim = num_classes, activation = "linear")))
-    model.add(TimeDistributed(Lambda(lambda x : K.exp(x))))
-
-    model.compile(optimizer='sgd', loss='mse')
-    out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
-    assert(out.shape == (nb_samples, timesteps, num_classes))
-def test_EpsLayer():
-    model = Sequential()
-    model.add(GRU(input_shape=(timesteps, embedding_dim), output_dim = output_dim, \
-            return_sequences = True, return_all_states = True))
-    model.add(EpsLayer())
-    model.add(TimeDistributed(Dense(output_dim = num_classes, activation = "linear")))
-    model.add(TimeDistributed(Lambda(lambda x : K.exp(x))))
-
-    model.compile(optimizer='sgd', loss='mse')
-    out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
-    assert(out.shape == (nb_samples, timesteps, num_classes))
-
-def test_BetaLayer():
-    model = Sequential()
-    model.add(LSTM(input_shape=(timesteps, embedding_dim), output_dim = output_dim, \
-            return_sequences = True, return_all_states = True))
-    model.add(BetaLayer())
+    model.add(BetaLayerLSTM())
     model.add(TimeDistributed(Dense(output_dim = num_classes, activation = "linear")))
     model.add(TimeDistributed(Lambda(lambda x : K.exp(x))))
     
@@ -86,11 +62,11 @@ def test_BetaLayer():
     out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
     assert(out.shape == (nb_samples, timesteps, num_classes))
 
-def test_GammaLayer():
+def test_GammaLayerLSTM():
     model = Sequential()
     model.add(LSTM(input_shape=(timesteps, embedding_dim), output_dim = output_dim, \
             return_sequences = True, return_all_states = True))
-    model.add(GammaLayer())
+    model.add(GammaLayerLSTM())
     model.add(TimeDistributed(Dense(output_dim = num_classes, activation = "linear")))
     model.add(TimeDistributed(Lambda(lambda x : K.exp(x))))
     
@@ -180,7 +156,7 @@ def test_unit_tests_Decomposition():
     m = Sequential()
     m.add(LSTM(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
             return_sequences = True, return_all_states = True))
-    m.add(BetaLayer(activation = "tanh"))
+    m.add(BetaLayerLSTM(activation = "tanh"))
     m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
     m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
@@ -195,7 +171,7 @@ def test_unit_tests_Decomposition():
     m = Sequential()
     m.add(LSTM(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
             return_sequences = True, return_all_states = True))
-    m.add(GammaLayer(activation = "tanh"))
+    m.add(GammaLayerLSTM(activation = "tanh"))
     m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
     m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
@@ -203,54 +179,38 @@ def test_unit_tests_Decomposition():
     
     assert np.allclose(np.array([gamma1, gamma2, gamma3]), pred)
     
-    phi1 = np.exp(np.dot(o3 * np.tanh(f2 * f3 * i1 * h_tilde1), Wout))
-    phi2 = np.exp(np.dot(o3 * np.tanh(f3 * i2 * h_tilde2), Wout))
-    phi3 = np.exp(np.dot(o3 * np.tanh(i3 * h_tilde3), Wout))
-    
-    m = Sequential()
-    m.add(LSTM(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
-            return_sequences = True, return_all_states = True))
-    m.add(PhiLayer(activation = "tanh"))
-    m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
-    m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
-    m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
-    pred = m.predict(X)[0]
-    
-    assert np.allclose(np.array([phi1, phi2, phi3]), pred)
-    
+
     mbeta1 = np.exp(np.dot(o2 * (np.tanh(c1) - np.tanh(c0)), Wout))
     mbeta2 = np.exp(np.dot(o2 * (np.tanh(c2) - np.tanh(c1)), Wout))
-    mbeta3 = np.ones_like(mbeta2)
     
     m = Sequential()
     m.add(Masking(input_shape=(None,3), mask_value = 1))
     m.add(LSTM(output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
             return_sequences = True, return_all_states = True))
-    m.add(BetaLayer(activation = "tanh"))
+    m.add(BetaLayerLSTM(activation = "tanh"))
     m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
     m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
 
     pred = m.predict(X)[0]
 
-    assert np.allclose(np.array([mbeta1, mbeta2, mbeta3]), pred)
+    assert np.allclose(np.array([mbeta1, mbeta2, mbeta2]), pred)
     
     mgamma1 = np.exp(np.dot(o2 * (np.tanh(f2 * c1) - np.tanh(f1*f2*c0)), Wout))
     mgamma2 = np.exp(np.dot(o2 * (np.tanh(c2) - np.tanh(f2 * c1)), Wout))
-    mgamma3 = np.ones_like(mgamma2)
 
     m = Sequential()
     m.add(Masking(input_shape=(None,3), mask_value = 1))
     m.add(LSTM(output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
             return_sequences = True, return_all_states = True))
-    m.add(GammaLayer(activation = "tanh"))
+    m.add(GammaLayerLSTM(activation = "tanh"))
     m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
     m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
 
     pred = m.predict(X)[0]
     
-    assert np.allclose(np.array([mgamma1, mgamma2, mgamma3]), pred)
+    assert np.allclose(np.array([mgamma1, mgamma2, mgamma2]), pred)
 
     # GRU
     
@@ -295,22 +255,6 @@ def test_unit_tests_Decomposition():
     assert np.allclose(np.array([r1, r2, r3]), pred[:,2,:])
     assert np.allclose(np.array([h_tilde1, h_tilde2, h_tilde3]), pred[:,3,:])
     
-    eps1 = np.exp(np.dot(z3 * z2 * (1-z1) * h_tilde1, Wout))
-    eps2 = np.exp(np.dot(z3 * (1-z2) * h_tilde2, Wout))
-    eps3 = np.exp(np.dot((1-z3) * h_tilde3, Wout))
-    
-    
-    m = Sequential()
-    m.add(GRU(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
-            return_sequences = True, return_all_states = True))
-    m.add(EpsLayer())
-    m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
-    m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
-    m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
-    pred = m.predict(X)[0]
-
-    assert np.allclose(np.array([eps1, eps2, eps3]), pred)
-    
     
     delta1 = np.exp(np.dot(h1-h0, Wout))
     delta2 = np.exp(np.dot(h2-h1, Wout))
@@ -319,7 +263,7 @@ def test_unit_tests_Decomposition():
     m = Sequential()
     m.add(GRU(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
             return_sequences = True, return_all_states = True))
-    m.add(DeltaLayer())
+    m.add(BetaLayerGRU())
     m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
     m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
@@ -334,7 +278,7 @@ def test_unit_tests_Decomposition():
     m = Sequential()
     m.add(GRU(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
             return_sequences = True, return_all_states = True))
-    m.add(OmegaLayer())
+    m.add(GammaLayerGRU())
     m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
     m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
@@ -342,55 +286,36 @@ def test_unit_tests_Decomposition():
 
     assert np.allclose(np.array([omega1, omega2, omega3]), pred)
     
-    meps1 = np.exp(np.dot(z2 * (1-z1) * h_tilde1, Wout))
-    meps2 = np.exp(np.dot((1-z2) * h_tilde2, Wout))
-    meps3 = np.ones_like(meps2)
-
-    m = Sequential()
-    m.add(Masking(input_shape=(None,3), mask_value = 1))
-    m.add(GRU(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
-            return_sequences = True, return_all_states = True))
-    m.add(EpsLayer())
-    m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
-    m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
-    m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
-    pred = m.predict(X)[0]
-    
-    assert np.allclose(np.array([meps1, meps2, meps3]), pred)
-    
     mdelta1 = np.exp(np.dot(h1 - h0, Wout))
     mdelta2 = np.exp(np.dot(h2 - h1, Wout))
-    mdelta3 = np.ones_like(mdelta2)
 
     m = Sequential()
     m.add(Masking(input_shape=(None,3), mask_value = 1))
     m.add(GRU(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
             return_sequences = True, return_all_states = True))
-    m.add(DeltaLayer())
+    m.add(BetaLayerGRU())
     m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
     m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
     pred = m.predict(X)[0]
     
-    assert np.allclose(np.array([mdelta1, mdelta2, mdelta3]), pred)
-    
+    assert np.allclose(np.array([mdelta1, mdelta2, mdelta2]), pred)
     
     momega1 = np.exp(np.dot((z2 * h1) - (z2 * z1 * h0), Wout))
     momega2 = np.exp(np.dot(h2 - (z2 * h1), Wout))
-    momega3 = np.ones_like(momega2)
 
     m = Sequential()
     m.add(Masking(input_shape=(None,3), mask_value = 1))
     m.add(GRU(input_shape = (None, 3), output_dim = 2, weights = W, inner_activation = "sigmoid", activation = "tanh", \
             return_sequences = True, return_all_states = True))
-    m.add(OmegaLayer())
+    m.add(GammaLayerGRU())
     m.add(TimeDistributed(Dense(output_dim = 3, activation = "linear", weights = [Wout, bout])))
     m.add(TimeDistributed(Lambda(lambda x:K.exp(x))))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
     pred = m.predict(X)[0]
     
-    assert np.allclose(np.array([momega1, momega2, momega3]), pred)
-'''
+    assert np.allclose(np.array([momega1, momega2, momega2]), pred)
+
 
 def test_unit_tests_Erasure():
 
