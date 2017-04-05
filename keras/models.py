@@ -7,6 +7,7 @@ import numpy as np
 
 from . import backend as K
 from . import optimizers
+from . import layers
 from .utils.io_utils import ask_to_proceed_with_overwrite
 from .engine.training import Model
 from .engine.topology import get_source_inputs, Node, Layer, Merge
@@ -271,6 +272,65 @@ class Sequential(Model):
         if layers:
             for layer in layers:
                 self.add(layer)
+    
+    def _gradients_function(self):
+        if isinstance(self.layers[0], layers.embeddings.Embedding):
+            emb = self.layers[0].outbound_nodes[0].input_tensors[0]
+        else:
+            emb = self.inputs[0]
+            
+        out = self.outputs[0] # output
+        
+        def _step(_index, _):
+            __index = _index[0][0]
+            
+            def __step(_class, _):#out, __emb, __index):
+                __class = _class[0][0]
+                grad = K.gradients(out[__index][__class], emb)[__index]
+                return grad, []
+
+            # loop over classes
+            _, inner, _, _ = K.rnn(__step,
+                    inputs = K.expand_dims(K.expand_dims(K.arange(out.shape[-1]), dim=-1), dim=0),
+                    initial_states = [],
+                    constants = [])
+
+            return K.permute_dimensions(inner, [1,0] + list(range(2, inner.ndim))), []
+
+        # loop over samples
+        _, outer, _, _ = K.rnn(_step,
+                inputs = K.expand_dims(K.expand_dims(K.arange(out.shape[0]), dim=-1), dim=0),
+                initial_states = [],
+                constants = [])
+
+        outer = K.permute_dimensions(outer, [1,0] + list(range(2, outer.ndim)))
+
+        if outer.ndim >= 4:
+            outer = K.permute_dimensions(outer, [0,2,1] + list(range(3, outer.ndim)))
+            # if this is an rnn scenario (samples, timesteps, ...), we want the time steps in second position
+        
+        return outer
+
+    def compute_gradients(self, x, **kwargs):
+        grads = self._gradients_function()
+        func = K.Function([self.inputs[0]], [grads])
+        return self._predict_loop(f = func, ins = [x], **kwargs)
+        #return func([x])[0]
+    
+    def compute_mean_gradients(self, x, **kwargs):
+        grads = self._gradients_function()
+        mean = K.mean(grads, axis = -1)
+        func = K.Function([self.inputs[0]], [mean])
+        return self._predict_loop(f = func, ins = [x], **kwargs)
+        #return func([x])[0]
+
+    def compute_gradient_length(self, x, **kwargs):
+        grads = self._gradients_function()
+        length = K.sqrt(K.sum(K.square(grads), axis = -1))
+        func = K.Function([self.inputs[0]], [length])
+        return self._predict_loop(f = func, ins = [x], **kwargs)
+
+    
 
     def add(self, layer):
         """Adds a layer instance on top of the layer stack.
