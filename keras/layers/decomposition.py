@@ -34,14 +34,15 @@ class ErasureLayer(Wrapper):
         m = K.stack([mask for _ in range(input_shape[1])], 1) # samples, timesteps (erasure), timesteps (rnn)
         anti_eye = K.variable(np.eye(input_shape[1]) == 0) # sqare matrix with 0 on diagonal and 1 elsewhere
 
-        m = m*anti_eye # knock out ones on the diagonals (zeros remain zeros in any case)
+        knock_m = m*anti_eye # knock out ones on the diagonals (zeros remain zeros in any case)
 
         def step(_mask, const):
             _x = const[0]
             _orig_score = const[1]
-            return _orig_score - self.layer.call(_x, mask = _mask), []
+            #_orig_mask = _mask[1]
+            return _orig_score - self.layer.call(_x, mask = _mask), []#K.switch(K.any(K.abs(_orig_mask - _m)), _orig_score - self.layer.call(_x, mask = _m), K.zeros_like(_orig_score)), []
 
-        _, outputs, _, _ = K.rnn(step, m, initial_states=[], constants = [x, orig_score], unroll=False)
+        _, outputs, _, _ = K.rnn(step, knock_m, initial_states=[], constants = [x, orig_score], unroll=False)
         
         return outputs
 
