@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose
 from keras.utils.test_utils import layer_test
 from keras.layers import recurrent, embeddings, decomposition
 from keras.layers.recurrent import LSTM, GRU
-from keras.layers.decomposition import BetaLayer, GammaLayer, EpsLayer, PhiLayer, OmegaLayer, DeltaLayer
+from keras.layers.decomposition import *
 from keras.models import Sequential
 from keras.layers.core import Masking, Dense, Lambda
 from keras.layers.wrappers import TimeDistributed
@@ -14,9 +14,19 @@ from keras.utils.test_utils import keras_test
 
 from keras import backend as K
 
-nb_samples, timesteps, embedding_dim, output_dim, num_classes = 2, 5, 4, 3, 2
+nb_samples, timesteps, embedding_dim, output_dim, num_classes = 2, 5, 6, 3, 4
 embedding_num = 12
 
+def test_ErasureLayer():
+    model = Sequential()
+    model.add(ErasureLayer(GRU(output_dim = output_dim, \
+            return_sequences = False, return_all_states = False), input_shape = (timesteps, embedding_dim)))
+
+    model.compile(optimizer='sgd', loss='mse')
+    out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+    assert(out.shape == (nb_samples, timesteps, output_dim))
+
+'''
 def test_OmegaLayer():
     model = Sequential()
     model.add(GRU(input_shape=(timesteps, embedding_dim), output_dim = output_dim, \
@@ -41,7 +51,6 @@ def test_DeltaLayer():
     out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
     assert(out.shape == (nb_samples, timesteps, num_classes))
 
-'''
 def test_PhiLayer():
     model = Sequential()
     model.add(LSTM(input_shape=(timesteps, embedding_dim), output_dim = output_dim, \
@@ -88,7 +97,6 @@ def test_GammaLayer():
     model.compile(optimizer='sgd', loss='mse')
     out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
     assert(out.shape == (nb_samples, timesteps, num_classes))
-'''
 
 def test_unit_tests_Decomposition():
 
@@ -382,7 +390,120 @@ def test_unit_tests_Decomposition():
     pred = m.predict(X)[0]
     
     assert np.allclose(np.array([momega1, momega2, momega3]), pred)
+'''
 
+def test_unit_tests_Erasure():
+
+    x1 = np.array([1,2,1])
+    x2 = np.array([0,1,1])
+    x3 = np.array([1,1,1])
+    
+    X = np.stack([x1,x2,x3])
+    X = np.stack([X,X,X])
+    
+    Wout = np.array([[2,0,0],[0,1,1]])
+    bout = np.zeros((3,))
+
+    def sigmoid(x):
+        return 1.0 / (1.0 + np.exp(-x))
+
+    # LSTM
+    
+    h0 = np.array([0,0])
+    c0 = np.array([0,0])
+        
+    Wi = np.array([[0,0], [0,1], [0,1]])
+    Ui = np.array([[0,1], [1,0]])
+        
+    Wf = np.array([[2,0], [0,2], [0,1]])
+    Uf = np.array([[0,2], [1,2]])
+        
+    Wo = np.array([[1,0], [0,0], [0,1]])
+    Uo = np.array([[0,2], [1,1]])
+        
+    Wc = np.array([[1,3], [0,0], [0,1]])
+    Uc = np.array([[0,1], [1,1]])
+    
+    bi = np.zeros((2,))
+    bc = np.zeros((2,))
+    bf = np.zeros((2,))
+    bo = np.zeros((2,))
+
+    W = [Wi, Ui, bi, Wc, Uc, bc, Wf, Uf, bf, Wo, Uo, bo]
+
+    # with nothing missing
+    
+    model = Sequential()
+    model.add(Masking(input_shape=(3,3), mask_value = 0))
+    model.add(LSTM(output_dim = 2, return_sequences = False, return_all_states = False, weights = W))
+    model.compile(optimizer='sgd', loss='mse')
+    outnorm = model.predict(np.array([[x1, x2, x3]]))
+    
+    # with x missing
+    
+    out1 = model.predict(np.array([[np.zeros_like(x1), x2, x3]]))
+    out2 = model.predict(np.array([[x1, np.zeros_like(x2), x3]]))
+    out3 = model.predict(np.array([[x1, x2, np.zeros_like(x3)]]))
+    
+    model = Sequential()
+    model.add(ErasureLayer(LSTM(output_dim = 2, weights = W), input_shape=(3,3)))
+    model.compile(optimizer='sgd', loss='mse')
+    outerasure = model.predict(np.array([[x1,x2,x3]]))
+
+    assert(np.allclose(np.array([outnorm-out1, outnorm-out2, outnorm-out3]).squeeze(), outerasure))
+    
+    # GRU
+
+    Wz = np.array([[0,0], [0,1], [0,1]])
+    Uz = np.array([[0,1], [1,0]])
+
+    Wr = np.array([[2,0], [0,2], [0,1]])
+    Ur = np.array([[0,2], [1,2]])
+
+    Wh = np.array([[1,0], [0,0], [0,1]])
+    Uh = np.array([[0,2], [1,1]])
+    
+    z1 = sigmoid(np.dot(x1, Wz) + np.dot(h0, Uz))
+    r1 = sigmoid(np.dot(x1, Wr) + np.dot(h0, Ur))
+    h_tilde1 = np.tanh(np.dot(x1, Wh) + np.dot(r1 * h0, Uh))
+    h1 = (1 - z1) * h_tilde1 + z1 * h0
+
+    z2 = sigmoid(np.dot(x2, Wz) + np.dot(h1, Uz))
+    r2 = sigmoid(np.dot(x2, Wr) + np.dot(h1, Ur))
+    h_tilde2 = np.tanh(np.dot(x2, Wh) + np.dot(r2 * h1, Uh))
+    h2 = (1 - z2) * h_tilde2 + z2 * h1
+
+    z3 = sigmoid(np.dot(x3, Wz) + np.dot(h2, Uz))
+    r3 = sigmoid(np.dot(x3, Wr) + np.dot(h2, Ur))
+    h_tilde3 = np.tanh(np.dot(x3, Wh) + np.dot(r3 * h2, Uh))
+    h3 = (1 - z3) * h_tilde3 + z3 * h2
+
+    bz = np.zeros((2,))
+    br = np.zeros((2,))
+    bh = np.zeros((2,))
+
+    W = [Wz, Uz, bz, Wr, Ur, br, Wh, Uh, bh]
+    
+    # with nothing missing
+    
+    model = Sequential()
+    model.add(Masking(input_shape=(3,3), mask_value = 0))
+    model.add(GRU(output_dim = 2, return_sequences = False, return_all_states = False, weights = W))
+    model.compile(optimizer='sgd', loss='mse')
+    outnorm = model.predict(np.array([[x1, x2, x3]]))
+    
+    # with x missing
+    
+    out1 = model.predict(np.array([[np.zeros_like(x1), x2, x3]]))
+    out2 = model.predict(np.array([[x1, np.zeros_like(x2), x3]]))
+    out3 = model.predict(np.array([[x1, x2, np.zeros_like(x3)]]))
+    
+    model = Sequential()
+    model.add(ErasureLayer(GRU(output_dim = 2, weights = W), input_shape=(3,3)))
+    model.compile(optimizer='sgd', loss='mse')
+    outerasure = model.predict(np.array([[x1,x2,x3]]))
+
+    assert(np.allclose(np.array([outnorm-out1, outnorm-out2, outnorm-out3]).squeeze(), outerasure))
 
 if __name__ == '__main__':
     pytest.main([__file__])

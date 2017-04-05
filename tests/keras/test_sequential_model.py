@@ -8,6 +8,8 @@ np.random.seed(1337)
 from keras import backend as K
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Merge, Lambda
+from keras.layers.embeddings import Embedding
+from keras.layers.recurrent import SimpleRNN
 from keras.utils import np_utils
 from keras.utils.test_utils import get_test_data, keras_test
 from keras.models import model_from_json, model_from_yaml
@@ -20,8 +22,10 @@ nb_hidden = 8
 nb_class = 4
 batch_size = 32
 nb_epoch = 1
+emb_size = 20
+nb_timesteps = 5
 
-
+'''
 @keras_test
 def test_sequential_pop():
     model = Sequential()
@@ -37,8 +41,52 @@ def test_sequential_pop():
     model.compile(loss='mse', optimizer='sgd')
     y = np.random.random((batch_size, nb_hidden))
     model.fit(x, y, nb_epoch=1)
+'''
 
+def test_gradients():
+    
 
+    model = Sequential()
+    model.add(Dense(nb_hidden, input_dim = input_dim))
+    model.add(Dense(nb_class))
+    model.compile(loss='mse', optimizer='sgd')
+    
+    X = np.random.random((batch_size, input_dim))
+    grads = model.compute_gradients(X)
+    assert grads.shape == (batch_size, nb_class, input_dim)
+    
+    W1 = np.eye(2) * 2
+    W2 = np.ones((2,2)) * 3
+
+    model_manual = Sequential()
+    model_manual.add(Dense(2, input_dim = 2, weights = [W1, np.zeros((2,))], activation = "linear"))
+    model_manual.add(Dense(2, weights = [W2, np.zeros((2,))], activation = "linear"))
+    model_manual.compile(loss='mse', optimizer='sgd')
+
+    x1 = 1
+    x2 = 2
+    X = np.array([[x1,x2]])
+    grads_manual = model_manual.compute_gradients(X)[0]
+
+    [h1, h2] = [x1 * 2, x2 * 2]
+    [y1, y2] = [h1 * 3 + h2 * 3, h1 * 3 + h2 * 3]
+
+    assert(np.allclose(grads_manual, np.ones((2,2)) * 6))
+    
+
+    model = Sequential()
+    model.add(Embedding(output_dim = emb_size, input_dim = input_dim))
+    model.add(SimpleRNN(nb_hidden))
+    model.add(Dense(nb_class))
+    model.compile(loss='mse', optimizer='sgd')
+
+    X = np.random.random((batch_size, nb_timesteps))
+    grads = model.compute_gradients(X)
+    assert grads.shape == (batch_size, nb_timesteps, nb_class, emb_size)
+    mean_grads = model.compute_mean_gradients(X)
+    assert mean_grads.shape == (batch_size, nb_timesteps, nb_class)
+
+'''
 def _get_test_data():
     np.random.seed(1234)
 
@@ -482,7 +530,7 @@ def test_sequential_count_params():
 
     model.compile('sgd', 'binary_crossentropy')
     assert(n == model.count_params())
-
+'''
 
 if __name__ == '__main__':
     pytest.main([__file__])
