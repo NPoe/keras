@@ -36,16 +36,14 @@ class ErasureLayer(Wrapper):
         def step(_mask, const):
             _x = const[0]
             _orig_score = const[1]
-            #_orig_mask = _mask[1]
-            return _orig_score - self.layer.call(_x, mask = _mask), []#K.switch(K.any(K.abs(_orig_mask - _m)), _orig_score - self.layer.call(_x, mask = _m), K.zeros_like(_orig_score)), []
+            return _orig_score - self.layer.call(_x, mask = _mask), []
 
-        _, outputs, _, _ = K.rnn(step, knock_m, initial_states=[], constants = [x, orig_score], unroll=False)
+        _, outputs, _, _ = K.rnn(step, knock_m, initial_states=[], constants = [x, orig_score], unroll=False, mask = mask)
         
         return outputs
 
     def get_output_shape_for(self, input_shape):
         return tuple(list(input_shape[0:2]) + list(self.layer.get_output_shape_for(input_shape)[1:]))
-
 
 class DecompositionLayer(Layer):
     def __init__(self):
