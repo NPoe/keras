@@ -1,4 +1,5 @@
 import copy
+import numpy as np
 from ..engine import Layer
 from ..engine import InputSpec
 from .. import backend as K
@@ -40,6 +41,56 @@ class Wrapper(Layer):
         from keras.utils.layer_utils import layer_from_config
         layer = layer_from_config(config.pop('layer'))
         return cls(layer, **config)
+
+
+class ErasureWrapper(Wrapper):
+    def __init__(self, layer, ngram = 1, **kwargs):
+        self.supports_masking = True
+        self.ngram = ngram
+        super(ErasureWrapper, self).__init__(layer, **kwargs)
+
+    def build(self, input_shape):
+        assert len(input_shape) >= 3
+        self.input_spec = [InputSpec(shape=input_shape)]
+        if not self.layer.built:
+            self.layer.build(input_shape)
+            self.layer.built = True
+            
+        super(ErasureWrapper, self).build()
+
+    def call(self, x, mask = None):
+        input_shape = K.int_shape(x)
+       
+        if mask is None:
+            mask = K.ones_like(x[:,:,0])
+        
+        orig_score = self.layer.call(x, mask)
+        m = K.stack([mask for _ in range(input_shape[1])], 1) # samples, timesteps (erasure), timesteps (rnn)
+        
+        eye = np.eye(input_shape[1])
+        
+        for i in range(1, self.ngram):
+            eye += np.pad(eye[:(-1) * i, :(-1) * i], pad_width = ((i,0), (0,i)), mode = lambda *x:0)
+
+        eye = eye[(self.ngram - 1):]
+
+        m = m[:,(self.ngram - 1):]
+       
+        anti_eye = K.variable(eye == 0) # sqare matrix with 0 on diagonal and 1 elsewhere
+
+        knock_m = m*anti_eye # knock out ones on the diagonals (zeros remain zeros in any case)
+        
+        def step(_mask, const):
+            _x = const[0]
+            _orig_score = const[1]
+            return _orig_score - self.layer.call(_x, mask = _mask), []
+
+        _, outputs, _, _ = K.rnn(step, knock_m, initial_states=[], constants = [x, orig_score], unroll=False, mask = mask)
+       
+        return outputs
+
+    def get_output_shape_for(self, input_shape):
+        return (input_shape[0],) + (input_shape[1] - self.ngram + 1,) + self.layer.get_output_shape_for(input_shape)[1:]
 
 
 class TimeDistributed(Wrapper):
