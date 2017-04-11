@@ -2,88 +2,70 @@
 from __future__ import absolute_import
 import numpy as np
 
-from .wrappers import Wrapper
 from .. import backend as K
 from .. import activations
 from ..engine import Layer, InputSpec
 
-class ErasureLayer(Wrapper):
-    def __init__(self, layer, **kwargs):
-        self.supports_masking = True
-        super(ErasureLayer, self).__init__(layer, **kwargs)
-
-    def build(self, input_shape):
-        assert len(input_shape) >= 3
-        self.input_spec = [InputSpec(shape=input_shape)]
-        if not self.layer.built:
-            self.layer.build(input_shape)
-            self.layer.built = True
-            
-        super(ErasureLayer, self).build()
-
-    def call(self, x, mask = None):
-        input_shape = K.int_shape(x)
-       
-        if mask is None:
-            mask = K.ones_like(x[:,:,0])
-        
-        orig_score = self.layer.call(x, mask)
-        m = K.stack([mask for _ in range(input_shape[1])], 1) # samples, timesteps (erasure), timesteps (rnn)
-        anti_eye = K.variable(np.eye(input_shape[1]) == 0) # sqare matrix with 0 on diagonal and 1 elsewhere
-
-        knock_m = m*anti_eye # knock out ones on the diagonals (zeros remain zeros in any case)
-
-        def step(_mask, const):
-            _x = const[0]
-            _orig_score = const[1]
-            return _orig_score - self.layer.call(_x, mask = _mask), []
-
-        _, outputs, _, _ = K.rnn(step, knock_m, initial_states=[], constants = [x, orig_score], unroll=False, mask = mask)
-        
-        return outputs
-
-    def get_output_shape_for(self, input_shape):
-        return tuple(list(input_shape[0:2]) + list(self.layer.get_output_shape_for(input_shape)[1:]))
+# idea: try bidirectional for Decomposition & Erasure
+# multi-timestep output for Decomposition layers (Erasure should already work)
 
 class DecompositionLayer(Layer):
-    def __init__(self):
+    def __init__(self, ngram = 1, return_sequences = False):
         self.supports_masking = True
+        self.ngram = ngram
+        self.return_sequences = return_sequences
+        assert self.ngram >= 1
         super(DecompositionLayer, self).__init__()
     
     def get_output_shape_for(self, input_shape):
-        return (input_shape[0], input_shape[1], input_shape[3])
+        assert len(input_shape) >= 4 # samples, timesteps, states (c|h|o...), hidden_size ...
+        if not input_shape[1] is None:
+            return (input_shape[0], input_shape[1] - self.ngram + 1) + input_shape[3:]
+        return (input_shape[0], input_shape[1]) + input_shape[3:]
 
 class LSTMDecompositionLayer(DecompositionLayer):
-    def __init__(self, activation = "tanh"):    
+    def __init__(self, activation = "tanh", **kwargs):    
         self.activation = activation
-        super(LSTMDecompositionLayer, self).__init__()
+        super(LSTMDecompositionLayer, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
         assert x.ndim >= 4, 'Input should be at least 4D.'
+
+        l = self.ngram - 1
+
+        if not mask is None:
+            mask = mask[:,l:]
         
         cAct = activations.get(self.activation)(self.prep_c_sequence(x, mask))
         
         oT = x[:,-1,4,:]
 
         def _step(c, states):
-            prev_c = states[0]
-            return oT * (c - prev_c), [c]
+            assert len(states) == self.ngram
+            return oT * (c - states[0]), list(states[1:]) + [c]
 
-        _, outputs, _, _ = K.rnn(_step, cAct, initial_states = [K.zeros_like(cAct[:,1])], mask = mask)
+        _, outputs, _, _ = K.rnn(_step, cAct[:,l:], \
+                initial_states = [K.zeros_like(cAct[:,0])] + [cAct[:,i] for i in range(l)], mask = mask)
 
         return outputs
 
 class GRUDecompositionLayer(DecompositionLayer):
     def call(self, x, mask=None):
         assert x.ndim >= 4, 'Input should be at least 4D.'
+
+        l = self.ngram - 1
+        
+        if not mask is None:
+            mask = mask[:,l:]
         
         h = self.prep_h_sequence(x, mask)
         
         def _step(h, states):
-            prev_h = states[0]
-            return h - prev_h, [h]
+            assert len(states) == self.ngram
+            return h - states[0], list(states[1:]) + [h]
 
-        _, outputs, _, _ = K.rnn(_step, h, initial_states = [K.zeros_like(h[:,1])], mask = mask)
+        _, outputs, _, _ = K.rnn(_step, h[:,l:], \
+                initial_states = [K.zeros_like(h[:,0])] + [h[:,i] for i in range(l)], mask = mask)
         
         return outputs
 
