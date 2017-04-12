@@ -9,15 +9,22 @@ from ..utils.generic_utils import Progbar
 
 
 class LimeTextSamplerNgram:
-    def __init__(self, ngram):
-        self.ngram = ngram
-        assert self.ngram >= 1
+    def __init__(self, minngram = 2, maxngram = 6):
+        self.minngram = minngram
+        self.maxngram = maxngram
+        assert self.minngram >= 1
+        assert self.maxngram >= 1
+        assert self.minngram <= self.maxngram
+
 
     def get_starts_and_lengths(self, length):
         samples = []
-        ngram = min(self.ngram, length)
-        for i in range(length - ngram + 1):
-            samples.append((i, ngram))
+        minngram = min(self.minngram, length)
+        maxngram = min(self.maxngram, length)
+
+        for ngram in range(minngram, maxngram + 1):
+            for i in range(length - ngram + 1):
+                samples.append((i, ngram))
         return samples
 
 class LimeTextSamplerRandom:
@@ -57,12 +64,15 @@ class Lime:
     def _lime(self, x, mask = None):
         raise NotImplementedError()
 
+
 class TextLime(Lime):
-    def __init__(self, model, sampler = LimeTextSamplerNgram(3), pad = 0, **kwargs):
+    def __init__(self, model, sampler = LimeTextSamplerNgram(3), pad = 0, loss = "binary_crossentropy", **kwargs):
         self.sampler = sampler
         self.pad = pad
+        self.loss = loss
         assert len(model.output_shape) == 2 # samples, #classes
         assert len(model.input_shape) >= 2 # samples, timesteps, ...
+        assert self.loss in ("mse", "binary_crossentropy")
         super(TextLime, self).__init__(model, **kwargs)
 
     def get_output_shape_for(self, input_shape):
@@ -79,7 +89,7 @@ class TextLime(Lime):
             for i in range(x.shape[0]):
                 _x_len += 1
                 if x[i] != self.pad:
-                    x_len = _x_len
+                    x_len = _x_len # fix maximum length at the last item that is not a pad
 
         samples = self.sampler.get_starts_and_lengths(x_len)
         X_s = np.stack([x[:x_len] for _ in range(len(samples))], axis = 0)
@@ -90,26 +100,31 @@ class TextLime(Lime):
             masks.append([0] * start + [1] * length + [0] * (x_len - start - length))
 
         X_s *= np.array(masks)
-        p_s = self.model.predict(X_s, verbose = 0)
-        y_s = p_s.argmax(axis = 1)
-        X_binary = X_s > 0
 
+        p_s = self.model.predict(X_s, verbose = 0)
+        X_binary = X_s > 0 # 1 everywhere where we have not masked, 0 elsewhere
 
         weights = []
 
+        MIN_DELTA = {"mse": 0.0001, "binary_crossentropy": 0.001}
+
         for cl in range(self.model.output_shape[-1]):
-            y_cl = y_s == cl # 1 for samples where self.model has predicted cl, 0 elsewhere
-            
+            if self.loss == "binary_crossentropy":
+                y = p_s.argmax(axis = 1) == cl # 1 for samples where self.model has predicted cl, 0 elsewhere
+            elif self.loss == "mse":
+                y = p_s[:,cl]
+
+
             simple_model = Sequential()
             simple_model.add(Dense(input_shape = (x_len,), output_dim = 1, activation = "sigmoid", bias = False))
-            simple_model.compile(loss = "binary_crossentropy", optimizer = "rmsprop", metrics = ["accuracy"])
-            simple_model.fit(X_binary, y_cl, verbose = 0, nb_epoch = 10000, \
-                    callbacks = [EarlyStopping(monitor="loss", min_delta = 0.001, patience = 3)])
+            simple_model.compile(loss = self.loss, optimizer = "rmsprop", metrics = ["accuracy"])
+            simple_model.fit(X_binary, y, verbose = 0, nb_epoch = 10000, \
+                    callbacks = [EarlyStopping(monitor="loss", min_delta = MIN_DELTA[self.loss], patience = 3)])
 
             weights_cl = simple_model.layers[-1].weights[0].container.storage[0].squeeze()
             weights_cl = np.concatenate([weights_cl, np.zeros((x.shape[0] - x_len,))], axis = 0)
             weights.append(weights_cl)
-       
+            
         weights = np.array(weights).transpose() # timesteps, #classes
         return weights
 
