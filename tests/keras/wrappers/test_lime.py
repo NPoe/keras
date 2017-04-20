@@ -4,7 +4,7 @@ import numpy as np
 from keras.layers.recurrent import LSTM, GRU
 from keras.models import Sequential
 from keras.layers.core import Masking, Dense, Lambda
-from keras.layers.lime import *
+from keras.wrappers.lime import *
 from keras.layers.embeddings import Embedding
 
 from keras import backend as K
@@ -19,12 +19,7 @@ def test_textlime():
     m.add(Dense(output_dim = num_classes, activation = "softmax"))
     m.compile("sgd", "categorical_crossentropy")
    
-    lime = TextLime(model = m)
-    lime_result = lime.call(np.random.choice(embedding_num,(nb_samples,timesteps)))
-
-    assert lime_result.shape == (nb_samples, timesteps, num_classes)
-    
-    lime = TextLime(model = m, sampler = LimeTextSamplerRandom(10, 7))
+    lime = TextLime(model = m, loss = "mse")
     lime_result = lime.call(np.random.choice(embedding_num,(nb_samples,timesteps)))
 
     assert lime_result.shape == (nb_samples, timesteps, num_classes)
