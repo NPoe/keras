@@ -10,13 +10,14 @@ from ..engine import Layer, InputSpec
 # multi-timestep output for Decomposition layers (Erasure should already work)
 
 class DecompositionLayer(Layer):
-    def __init__(self, ngram = 1, return_sequences = False):
+    def __init__(self, ngram = 1, return_sequences = False, go_backwards = False):
         self.supports_masking = True
         self.ngram = ngram
         self.return_sequences = return_sequences
+        self.go_backwards = go_backwards
         assert self.ngram >= 1
         super(DecompositionLayer, self).__init__()
-    
+
     def get_output_shape_for(self, input_shape):
         assert len(input_shape) >= 4 # samples, timesteps, states (c|h|o...), hidden_size ...
         if not input_shape[1] is None:
@@ -35,17 +36,17 @@ class LSTMDecompositionLayer(DecompositionLayer):
 
         if not mask is None:
             mask = mask[:,l:]
-        
-        cAct = activations.get(self.activation)(self.prep_c_sequence(x, mask))
-        
-        oT = x[:,-1,4,:]
+
+        cAct = activations.get(self.activation)(self.prep_c_sequence(x, mask)) 
+        oT = x[:,0 - int(not self.go_backwards),4,:]
 
         def _step(c, states):
             assert len(states) == self.ngram
             return oT * (c - states[0]), list(states[1:]) + [c]
 
         _, outputs, _, _ = K.rnn(_step, cAct[:,l:], \
-                initial_states = [K.zeros_like(cAct[:,0])] + [cAct[:,i] for i in range(l)], mask = mask)
+                initial_states = [K.zeros_like(cAct[:,0])] + [cAct[:,i] for i in range(l)], \
+                mask = mask, go_backwards = self.go_backwards)
 
         return outputs
 
@@ -65,7 +66,8 @@ class GRUDecompositionLayer(DecompositionLayer):
             return h - states[0], list(states[1:]) + [h]
 
         _, outputs, _, _ = K.rnn(_step, h[:,l:], \
-                initial_states = [K.zeros_like(h[:,0])] + [h[:,i] for i in range(l)], mask = mask)
+                initial_states = [K.zeros_like(h[:,0])] + [h[:,i] for i in range(l)], \
+                mask = mask, go_backwards = self.go_backwards)
         
         return outputs
 
@@ -81,9 +83,10 @@ class GammaLayerGRU(GRUDecompositionLayer):
         def _step(_z, _states):
             return _states[0], [_z * _states[0]]
 
-        _, outz, _, _ = K.rnn(_step, z, initial_states = [K.ones_like(z[:,1])], mask = mask, go_backwards = True)
+        _, outz, _, _ = K.rnn(_step, z, initial_states = [K.ones_like(z[:,1])], mask = mask, go_backwards = not self.go_backwards)
 
-        outz = outz[:,::-1]
+        if not self.go_backwards:
+            outz = outz[:,::-1]
 
         return outz * h
 
@@ -99,8 +102,9 @@ class GammaLayerLSTM(LSTMDecompositionLayer):
         def _step(_f, _states):
             return _states[0], [_f * _states[0]]
 
-        _, outf, _, _ = K.rnn(_step, f, initial_states = [K.ones_like(f[:,1])], mask = mask, go_backwards = True)
+        _, outf, _, _ = K.rnn(_step, f, initial_states = [K.ones_like(f[:,1])], mask = mask, go_backwards = not self.go_backwards)
 
-        outf = outf[:,::-1]
+        if not self.go_backwards:
+            outf = outf[:,::-1]
        
         return outf * c
