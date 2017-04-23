@@ -482,7 +482,6 @@ class Flatten(Layer):
     def call(self, x, mask=None):
         return K.batch_flatten(x)
 
-
 class RepeatVector(Layer):
     """Repeats the input n times.
 
@@ -524,6 +523,14 @@ class RepeatVector(Layer):
         base_config = super(RepeatVector, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class Reverse(Layer):
+    def call(self, x, mask = None):
+        return K.reverse(x, [1])
+    
+    def compute_mask(self, input, mask):
+        if mask is None:
+            return None
+        return K.reverse(mask, [1])
 
 class Lambda(Layer):
     """Used for evaluating an arbitrary expressions on an input.
