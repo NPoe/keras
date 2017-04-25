@@ -523,6 +523,20 @@ class RepeatVector(Layer):
         base_config = super(RepeatVector, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class Split(Layer):
+    def __init__(self, n, **kwargs):
+        self.n = n
+        super(Split, self).__init__(**kwargs)
+
+    def call(self, x, mask = None):
+        shape = K.int_shape(x)
+        assert shape[-1] % self.n == 0
+        split = shape[-1] // self.n
+        return [x[...,((i-1) * split) : (i*split)] for i in range(self.n)]
+    
+    def get_output_shape_for(self, input_shape):
+        return [tuple(input_shape[:-1]) + tuple(input_shape[-1] // self.n)] * self.n
+
 class Reverse(Layer):
     def call(self, x, mask = None):
         return K.reverse(x, [1])
