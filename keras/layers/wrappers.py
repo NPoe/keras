@@ -210,11 +210,16 @@ class Bidirectional(Wrapper):
     ```
     """
 
-    def __init__(self, layer, merge_mode='concat', weights=None, **kwargs):
+    def __init__(self, layer, merge_mode='concat', input_mode='same', weights=None, **kwargs):
         if merge_mode not in ['sum', 'mul', 'ave', 'concat', None]:
             raise ValueError('Invalid merge mode. '
                              'Merge mode should be one of '
                              '{"sum", "mul", "ave", "concat", None}')
+        if input_mode not in ['same', 'split']:
+            raise ValueError('Invalid input mode. '
+                             'Input mode should be one of '
+                             '{"same", "split"}')
+
         self.forward_layer = copy.copy(layer)
         config = layer.get_config()
         config['go_backwards'] = not config['go_backwards']
@@ -222,6 +227,7 @@ class Bidirectional(Wrapper):
         self.forward_layer.name = 'forward_' + self.forward_layer.name
         self.backward_layer.name = 'backward_' + self.backward_layer.name
         self.merge_mode = merge_mode
+        self.input_mode = input_mode
         if weights:
             nw = len(weights)
             self.forward_layer.initial_weights = weights[:nw // 2]
@@ -240,18 +246,31 @@ class Bidirectional(Wrapper):
         self.backward_layer.set_weights(weights[nw // 2:])
 
     def get_output_shape_for(self, input_shape):
+        basic_shape = self.forward_layer.get_output_shape_for(input_shape)
         if self.merge_mode in ['sum', 'ave', 'mul']:
+            if self.input_mode == "split":
+                return tuple(basic_shape[:-1]) + (basic_shape[-1] // 2,)
             return self.forward_layer.get_output_shape_for(input_shape)
         elif self.merge_mode == 'concat':
-            shape = list(self.forward_layer.get_output_shape_for(input_shape))
-            shape[-1] *= 2
-            return tuple(shape)
+            if self.input_mode == "same":
+                return tuple(basic_shape[:-1]) + (basic_shape[-1] * 2,)
+            return basic_shape
         elif self.merge_mode is None:
+            if self.input_mode == "split":
+                return [tuple(basic_shape[:-1]) + (basic_shape[-1] // 2)] * 2
             return [self.forward_layer.get_output_shape_for(input_shape)] * 2
 
     def call(self, inputs, mask=None):
-        y = self.forward_layer.call(inputs, mask)
-        y_rev = self.backward_layer.call(inputs, mask)
+
+        if self.input_mode == "same":
+            y = self.forward_layer.call(inputs, mask)
+            y_rev = self.backward_layer.call(inputs, mask)
+        elif self.input_mode == "split":
+            length = K.int_shape(inputs)[-1]
+            assert length % 2 == 0
+            y = self.forward_layer.call(inputs[...,:length//2], mask)
+            y_rev = self.backward_layer.call(inputs[...,length//2:], mask)
+
         if self.return_sequences:
             y_rev = K.reverse(y_rev, 1)
         if self.merge_mode == 'concat':
