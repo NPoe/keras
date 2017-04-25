@@ -3,12 +3,12 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from keras.utils.test_utils import layer_test
-from keras.layers import recurrent, embeddings, decomposition
+from keras.layers import recurrent, embeddings, decomposition, Input
 from keras.layers.recurrent import LSTM, GRU
 from keras.layers.decomposition import *
-from keras.models import Sequential
-from keras.layers.core import Masking, Dense, Lambda
-from keras.layers.wrappers import TimeDistributed, ErasureWrapper
+from keras.models import Sequential, Model
+from keras.layers.core import Masking, Dense, Lambda, Merge
+from keras.layers.wrappers import TimeDistributed, Bidirectional, ErasureWrapper
 from keras import regularizers
 from keras.utils.test_utils import keras_test
 
@@ -17,6 +17,9 @@ from keras import backend as K
 nb_samples, timesteps, embedding_dim, output_dim, num_classes = 2, 5, 6, 3, 4
 embedding_num = 12
 
+def sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-x))
+'''
 def test_ErasureWrapper():
     for i in range(1,4):
         model = Sequential()
@@ -38,6 +41,24 @@ def test_GammaLayerGRU():
         model.compile(optimizer='sgd', loss='mse')
         out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
         assert(out.shape == (nb_samples, timesteps - i + 1, num_classes))
+
+def test_GammaLayerGRUBidirectional():
+    
+    inp = Input(shape = (timesteps, embedding_dim))
+    GRU_forward = GRU(input_shape = (timesteps, embedding_dim), output_dim = output_dim,
+            return_sequences = True, return_all_states = True)(inp)
+    GRU_backward = GRU(input_shape = (timesteps, embedding_dim), output_dim = output_dim,
+            return_sequences = True, return_all_states = True, go_backwards = True)(inp)
+    gamma_forward = GammaLayerGRU()(GRU_forward)
+    gamma_backward = GammaLayerGRU()(GRU_backward)
+    merged = Merge(mode = "concat")([gamma_forward, gamma_backward])
+    outp = TimeDistributed(Dense(output_dim = num_classes, activation = "exp"))(merged)
+
+    model = Model([inp], [merged])
+    model.compile(optimizer = 'sgd', loss = 'mse')
+    out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+    assert(out.shape == (nb_samples, timesteps, output_dim * 2))
+
 
 def test_BetaLayerGRU():
     for i in range(1,4):
@@ -75,6 +96,7 @@ def test_GammaLayerLSTM():
         out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
         assert(out.shape == (nb_samples, timesteps - i + 1, num_classes))
 
+
 def test_unit_tests_Decomposition():
 
     x1 = np.array([1,2,1])
@@ -87,8 +109,6 @@ def test_unit_tests_Decomposition():
     Wout = np.array([[2,0,0],[0,1,1]])
     bout = np.zeros((3,))
 
-    def sigmoid(x):
-        return 1.0 / (1.0 + np.exp(-x))
 
     # LSTM
     h0 = np.array([0,0])
@@ -423,9 +443,6 @@ def test_unit_tests_Erasure():
     Wout = np.array([[2,0,0],[0,1,1]])
     bout = np.zeros((3,))
 
-    def sigmoid(x):
-        return 1.0 / (1.0 + np.exp(-x))
-
     # LSTM
     
     h0 = np.array([0,0])
@@ -535,6 +552,190 @@ def test_unit_tests_Erasure():
     outerasure = model.predict(np.array([[x1,x2,x3]]))
 
     assert(np.allclose(np.array([outnorm-out12, outnorm-out23]).squeeze(), outerasure))
+'''
+def test_unit_tests_Decomposition_bidirectional():
+
+    x1 = np.array([1,2,1])
+    x2 = np.array([0,1,1])
+    x3 = np.array([1,1,1])
     
+    X = np.stack([x1,x2,x3])
+    X = np.stack([X])
+    
+    Wout = np.array([[2,0,0],[0,1,1],[6,7,8],[4,5,3]])
+    bout = np.zeros((3,))
+
+
+    # Forward
+    h0 = np.array([0,0])
+    c0 = np.array([0,0])
+        
+    Wif = np.array([[0,0], [0,1], [0,1]])
+    Uif = np.array([[0,1], [1,0]])
+        
+    Wff = np.array([[2,0], [0,2], [0,1]])
+    Uff = np.array([[0,2], [1,2]])
+        
+    Wof = np.array([[1,0], [0,0], [0,1]])
+    Uof = np.array([[0,2], [1,1]])
+        
+    Wcf = np.array([[1,3], [0,0], [0,1]])
+    Ucf = np.array([[0,1], [1,1]])
+        
+    i1f = sigmoid(np.dot(x1, Wif) + np.dot(h0, Uif))
+    f1f = sigmoid(np.dot(x1, Wff) + np.dot(h0, Uff))
+    o1f = sigmoid(np.dot(x1, Wof) + np.dot(h0, Uof))
+    h_tilde1f = np.tanh(np.dot(x1, Wcf) + np.dot(h0, Ucf))
+        
+    c1f = f1f * c0 + i1f * h_tilde1f
+    h1f = o1f * np.tanh(c1f)
+        
+    i2f = sigmoid(np.dot(x2, Wif) + np.dot(h1f, Uif))
+    f2f = sigmoid(np.dot(x2, Wff) + np.dot(h1f, Uff))
+    o2f = sigmoid(np.dot(x2, Wof) + np.dot(h1f, Uof))
+    h_tilde2f = np.tanh(np.dot(x2, Wcf) + np.dot(h1f, Ucf))
+
+    c2f = f2f * c1f + i2f * h_tilde2f
+    h2f = o2f * np.tanh(c2f)
+
+    i3f = sigmoid(np.dot(x3, Wif) + np.dot(h2f, Uif))
+    f3f = sigmoid(np.dot(x3, Wff) + np.dot(h2f, Uff))
+    o3f = sigmoid(np.dot(x3, Wof) + np.dot(h2f, Uof))
+    h_tilde3f = np.tanh(np.dot(x3, Wcf) + np.dot(h2f, Ucf))
+
+    c3f = f3f * c2f + i3f * h_tilde3f
+    h3f = o3f * np.tanh(c3f)
+    
+    bi = np.zeros((2,))
+    bc = np.zeros((2,))
+    bf = np.zeros((2,))
+    bo = np.zeros((2,))
+
+    Wf = [Wif, Uif, bi, Wcf, Ucf, bc, Wff, Uff, bf, Wof, Uof, bo]
+    
+    # Backward
+    h4 = np.array([0,0])
+    c4 = np.array([0,0])
+        
+    Wib = np.array([[0,0], [0,1], [0,1]])
+    Uib = np.array([[0,1], [4,0]])
+        
+    Wfb = np.array([[2,0], [5,2], [0,1]])
+    Ufb = np.array([[0,2], [1,2]])
+        
+    Wob = np.array([[1,0], [0,6], [0,1]])
+    Uob = np.array([[0,2], [1,1]])
+        
+    Wcb = np.array([[1,3], [0,0], [0,3]])
+    Ucb = np.array([[0,1], [1,1]])
+        
+    i3b = sigmoid(np.dot(x3, Wib) + np.dot(h4, Uib))
+    f3b = sigmoid(np.dot(x3, Wfb) + np.dot(h4, Ufb))
+    o3b = sigmoid(np.dot(x3, Wob) + np.dot(h4, Uob))
+    h_tilde3b = np.tanh(np.dot(x3, Wcb) + np.dot(h4, Ucb))
+        
+    c3b = f3b * c4 + i3b * h_tilde3b
+    h3b = o3b * np.tanh(c3b)
+        
+    i2b = sigmoid(np.dot(x2, Wib) + np.dot(h3b, Uib))
+    f2b = sigmoid(np.dot(x2, Wfb) + np.dot(h3b, Ufb))
+    o2b = sigmoid(np.dot(x2, Wob) + np.dot(h3b, Uob))
+    h_tilde2b = np.tanh(np.dot(x2, Wcb) + np.dot(h3b, Ucb))
+
+    c2b = f2b * c3b + i2b * h_tilde2b
+    h2b = o2b * np.tanh(c2b)
+
+    i1b = sigmoid(np.dot(x1, Wib) + np.dot(h2b, Uib))
+    f1b = sigmoid(np.dot(x1, Wfb) + np.dot(h2b, Ufb))
+    o1b = sigmoid(np.dot(x1, Wob) + np.dot(h2b, Uob))
+    h_tilde1b = np.tanh(np.dot(x1, Wcb) + np.dot(h2b, Ucb))
+
+    c1b = f1b * c2b + i1b * h_tilde1b
+    h1b = o1b * np.tanh(c1b)
+    
+    bi = np.zeros((2,))
+    bc = np.zeros((2,))
+    bf = np.zeros((2,))
+    bo = np.zeros((2,))
+    
+    Wb = [Wib, Uib, bi, Wcb, Ucb, bc, Wfb, Ufb, bf, Wob, Uob, bo]
+
+    inp = Input(shape=(3,3))
+   
+    LSTM_bidir = Bidirectional(LSTM(input_shape= (None, 3), output_dim = 2,
+        return_sequences = True, return_all_states = True, activation = "tanh", 
+        inner_activation = "sigmoid"), weights = Wf + Wb, merge_mode = "concat")(inp)
+
+    beta_bidir = Bidirectional(BetaLayerLSTM(), input_mode = "split", merge_mode = "concat")(LSTM_bidir)
+
+    outp = TimeDistributed(Dense(output_dim = 3, weights = [Wout, bout], activation = "exp"))(beta_bidir)
+    m = Model([inp], [outp])
+    m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
+    pred = m.predict(X)[0]
+    
+    beta1 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c1f) - np.tanh(c0)), o1b * (np.tanh(c1b) - np.tanh(c2b))]), Wout))
+    beta2 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c2f) - np.tanh(c1f)), o1b * (np.tanh(c2b) - np.tanh(c3b))]), Wout))
+    beta3 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c3f) - np.tanh(c2f)), o1b * (np.tanh(c3b) - np.tanh(c4))]), Wout))
+
+    assert(np.allclose(pred, np.array([beta1, beta2, beta3])))
+
+    gamma_bidir = Bidirectional(GammaLayerLSTM(), input_mode = "split", merge_mode = "concat")(LSTM_bidir)
+    outp_g = TimeDistributed(Dense(output_dim = 3, weights = [Wout, bout], activation = "exp"))(gamma_bidir)
+
+    m_g = Model([inp], [outp_g])
+    m_g.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
+    pred_g = m_g.predict(X)[0]
+    
+    gamma1 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c1f * f2f * f3f) - np.tanh(c0 * f1f * f2f * f3f)), \
+            o1b * (np.tanh(c1b) - np.tanh(c2b * f1b))]), Wout))
+    gamma2 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c2f * f3f) - np.tanh(c1f * f2f * f3f)), \
+            o1b * (np.tanh(c2b * f1b) - np.tanh(c3b * f2b * f1b))]), Wout))
+    gamma3 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c3f) - np.tanh(c2f * f3f)), \
+            o1b * (np.tanh(c3b * f2b * f1b) - np.tanh(c4 * f3b * f2b * f1b))]), Wout))
+    
+    assert(np.allclose(pred_g, np.array([gamma1, gamma2, gamma3])))
+    
+
+    # does masking work?
+    masked = Masking(1)(inp)
+    LSTM_bidir = Bidirectional(LSTM(input_shape= (None, 3), output_dim = 2,
+        return_sequences = True, return_all_states = True, activation = "tanh", 
+        inner_activation = "sigmoid"), weights = Wf + Wb, merge_mode = "concat")(masked)
+    gamma_bidir = Bidirectional(GammaLayerLSTM(), input_mode = "split", merge_mode = "concat")(LSTM_bidir)
+    outp_mg = TimeDistributed(Dense(output_dim = 3, weights = [Wout, bout], activation = "exp"))(gamma_bidir)
+
+    m_mg = Model([inp], [outp_mg])
+    pred_mg = m_mg.predict(X)[0]
+    
+    
+    i2b = sigmoid(np.dot(x2, Wib) + np.dot(h4, Uib))
+    f2b = sigmoid(np.dot(x2, Wfb) + np.dot(h4, Ufb))
+    o2b = sigmoid(np.dot(x2, Wob) + np.dot(h4, Uob))
+    h_tilde2b = np.tanh(np.dot(x2, Wcb) + np.dot(h4, Ucb))
+
+    c2b = f2b * c4 + i2b * h_tilde2b
+    h2b = o2b * np.tanh(c2b)
+
+    i1b = sigmoid(np.dot(x1, Wib) + np.dot(h2b, Uib))
+    f1b = sigmoid(np.dot(x1, Wfb) + np.dot(h2b, Ufb))
+    o1b = sigmoid(np.dot(x1, Wob) + np.dot(h2b, Uob))
+    h_tilde1b = np.tanh(np.dot(x1, Wcb) + np.dot(h2b, Ucb))
+
+    c1b = f1b * c2b + i1b * h_tilde1b
+    h1b = o1b * np.tanh(c1b)
+    
+    
+    mgamma1 = np.exp(np.dot(np.concatenate([o2f * (np.tanh(c1f * f2f) - np.tanh(c0)), \
+            o1b * (np.tanh(c1b) - np.tanh(c2b * f1b))]), Wout))
+    mgamma2 = np.exp(np.dot(np.concatenate([o2f * (np.tanh(c2f) - np.tanh(c1f * f2f)), \
+            o1b * (np.tanh(c2b * f1b) - np.tanh(c4))]), Wout))
+
+
+    assert(np.allclose(pred_mg[:2], np.array([mgamma1, mgamma2])))
+
+
+
+
+
 if __name__ == '__main__':
     pytest.main([__file__])
