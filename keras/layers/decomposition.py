@@ -10,19 +10,40 @@ from ..engine import Layer, InputSpec
 # multi-timestep output for Decomposition layers (Erasure should already work)
 
 class DecompositionLayer(Layer):
-    def __init__(self, ngram = 1, return_sequences = False, go_backwards = False):
-        self.supports_masking = True
-        self.ngram = ngram
+    def __init__(self, input_dim = None, return_sequences = True, input_length = None, ngram = 1, 
+            multiple_outputs = False, go_backwards = False, stateful = False, **kwargs):
+        
+        self.stateful = stateful
         self.return_sequences = return_sequences
+        self.ngram = ngram
+        self.multiple_outputs = multiple_outputs
         self.go_backwards = go_backwards
+        
+        self.input_spec = [InputSpec(ndim=3)]
+        self.input_dim = input_dim
+        self.input_length = input_length
+        if self.input_dim:
+            kwargs['input_shape'] = (self.input_length, self.input_dim)
+        
         assert self.ngram >= 1
-        super(DecompositionLayer, self).__init__()
+        super(DecompositionLayer, self).__init__(**kwargs)
 
     def get_output_shape_for(self, input_shape):
         assert len(input_shape) >= 4 # samples, timesteps, states (c|h|o...), hidden_size ...
         if not input_shape[1] is None:
             return (input_shape[0], input_shape[1] - self.ngram + 1) + input_shape[3:]
         return (input_shape[0], input_shape[1]) + input_shape[3:]
+    
+    def get_config(self):
+        config = {'return_sequences': self.return_sequences,
+                  'go_backwards': self.go_backwards,
+                  'stateful': self.stateful}
+        
+        config['input_dim'] = self.input_dim
+        config['input_length'] = self.input_length
+
+        base_config = super(DecompositionLayer, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 class LSTMDecompositionLayer(DecompositionLayer):
     def __init__(self, activation = "tanh", **kwargs):    
@@ -37,7 +58,7 @@ class LSTMDecompositionLayer(DecompositionLayer):
         if not mask is None:
             mask = mask[:,l:]
 
-        cAct = activations.get(self.activation)(self.prep_c_sequence(x, mask)) 
+        cAct = self.prep_sequence(x, mask)
         oT = x[:,0 - int(not self.go_backwards),4,:]
 
         def _step(c, states):
@@ -59,7 +80,7 @@ class GRUDecompositionLayer(DecompositionLayer):
         if not mask is None:
             mask = mask[:,l:]
         
-        h = self.prep_h_sequence(x, mask)
+        h = self.prep_sequence(x, mask)
         
         def _step(h, states):
             assert len(states) == self.ngram
@@ -72,11 +93,11 @@ class GRUDecompositionLayer(DecompositionLayer):
         return outputs
 
 class BetaLayerGRU(GRUDecompositionLayer):
-    def prep_h_sequence(self, x, mask = None):
+    def prep_sequence(self, x, mask = None):
         return x[:,:,0,:]
 
 class GammaLayerGRU(GRUDecompositionLayer):
-    def prep_h_sequence(self, x, mask = None):
+    def prep_sequence(self, x, mask = None):
         z = x[:,:,1,:]
         h = x[:,:,0,:]
 
@@ -91,11 +112,11 @@ class GammaLayerGRU(GRUDecompositionLayer):
         return outz * h
 
 class BetaLayerLSTM(LSTMDecompositionLayer):
-    def prep_c_sequence(self, x, mask = None):
-        return x[:,:,1,:]
+    def prep_sequence(self, x, mask = None):
+        return activations.get(self.activation)(x[:,:,1,:])
 
 class GammaLayerLSTM(LSTMDecompositionLayer):
-    def prep_c_sequence(self, x, mask = None):
+    def prep_sequence(self, x, mask = None):
         f = x[:,:,3,:]
         c = x[:,:,1,:]
 
@@ -107,4 +128,4 @@ class GammaLayerLSTM(LSTMDecompositionLayer):
         if not self.go_backwards:
             outf = outf[:,::-1]
        
-        return outf * c
+        return activations.get(self.activation)(outf * c)
