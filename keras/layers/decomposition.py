@@ -13,13 +13,14 @@ class DecompositionLayer(Layer):
     def __init__(self, input_dim = None, return_sequences = True, input_length = None, ngram = 1, 
             multiple_outputs = False, go_backwards = False, stateful = False, **kwargs):
         
+        self.supports_masking = True
         self.stateful = stateful
         self.return_sequences = return_sequences
         self.ngram = ngram
         self.multiple_outputs = multiple_outputs
         self.go_backwards = go_backwards
         
-        self.input_spec = [InputSpec(ndim=3)]
+        self.input_spec = [InputSpec(ndim=4)]
         self.input_dim = input_dim
         self.input_length = input_length
         if self.input_dim:

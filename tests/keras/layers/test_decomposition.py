@@ -19,7 +19,7 @@ embedding_num = 12
 
 def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
-'''
+
 def test_ErasureWrapper():
     for i in range(1,4):
         model = Sequential()
@@ -45,19 +45,17 @@ def test_GammaLayerGRU():
 def test_GammaLayerGRUBidirectional():
     
     inp = Input(shape = (timesteps, embedding_dim))
-    GRU_forward = GRU(input_shape = (timesteps, embedding_dim), output_dim = output_dim,
-            return_sequences = True, return_all_states = True)(inp)
-    GRU_backward = GRU(input_shape = (timesteps, embedding_dim), output_dim = output_dim,
-            return_sequences = True, return_all_states = True, go_backwards = True)(inp)
-    gamma_forward = GammaLayerGRU()(GRU_forward)
-    gamma_backward = GammaLayerGRU()(GRU_backward)
-    merged = Merge(mode = "concat")([gamma_forward, gamma_backward])
-    outp = TimeDistributed(Dense(output_dim = num_classes, activation = "exp"))(merged)
+    gru = Bidirectional(GRU(input_shape = (timesteps, embedding_dim), output_dim = output_dim,
+            return_sequences = True, return_all_states = True), merge_mode = "concat")(inp)
+    gamma = Bidirectional(GammaLayerGRU(), input_mode = "split", merge_mode = "concat")(gru)
 
-    model = Model([inp], [merged])
+    outp = TimeDistributed(Dense(output_dim = num_classes, activation = "exp"))(gamma)
+
+    model = Model([inp], [gamma, outp])
     model.compile(optimizer = 'sgd', loss = 'mse')
     out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
-    assert(out.shape == (nb_samples, timesteps, output_dim * 2))
+    assert(out[0].shape == (nb_samples, timesteps, output_dim * 2))
+    assert(out[1].shape == (nb_samples, timesteps, num_classes))
 
 
 def test_BetaLayerGRU():
@@ -552,7 +550,7 @@ def test_unit_tests_Erasure():
     outerasure = model.predict(np.array([[x1,x2,x3]]))
 
     assert(np.allclose(np.array([outnorm-out12, outnorm-out23]).squeeze(), outerasure))
-'''
+
 def test_unit_tests_Decomposition_bidirectional():
 
     x1 = np.array([1,2,1])
