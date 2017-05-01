@@ -3,7 +3,7 @@ from setuptools import find_packages
 
 
 setup(name='Keras',
-      version='1.2.2',
+      version='1.2.3',
       description='Deep Learning for Python',
       author='Francois Chollet',
       author_email='francois.chollet@gmail.com',
