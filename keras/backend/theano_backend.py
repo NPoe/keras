@@ -167,7 +167,6 @@ def ones(shape, dtype=None, name=None):
         dtype = floatx()
     return variable(np.ones(shape), dtype, name)
 
-
 def eye(size, dtype=None, name=None):
     """Instantiates an identity matrix.
     """
@@ -182,6 +181,56 @@ def ones_like(x, dtype=None, name=None):
 
 def zeros_like(x, dtype=None, name=None):
     return T.zeros_like(x, dtype=dtype)
+
+def eye_like(x, dtype=None, name=None):
+	"""
+	Identity derived from random tensor
+	"""
+
+	mask = zeros_like(x)
+	def _step(_, idx):
+		return theano.tensor.set_subtensor(mask[tuple([idx for _ in range(0, x.ndim)])], 1)[idx], idx + 1
+	
+	return theano.scan(_step, [x], [None, 0])[0][0]
+
+def tril_from_vec(x, dtype=None, name=None):
+	"""
+	Turns vector of any length l into a lower triangular matrix of ones (l,l).
+	"""
+	assert x.ndim == 1
+	mask = zeros_like(x)
+	def _step(_, idx):
+		return theano.tensor.set_subtensor(mask[:idx+1], 1), idx + 1
+	
+	return theano.scan(_step, [x], [None, 0])[0][0]
+
+def triu_from_vec(x, dtype=None, name=None):
+	"""
+	Turns vector of any length l into an upper triangular matrix of ones (l,l).
+	"""
+	assert x.ndim == 1
+	mask = zeros_like(x)
+	def _step(_, idx):
+		return theano.tensor.set_subtensor(mask[idx:], 1), idx + 1
+
+	return theano.scan(_step, [x], [None, 0])[0][0]
+
+def diag_from_vec(x, offset=0, dtype=None, name=None):
+	"""
+	Turns vector of any length l into a diagonal matrix of ones, with optional offset.
+	Caution: I'm unable to check that offset < l, so make sure that it is.
+	"""
+	assert x.ndim == 1
+	mask = zeros_like(x)
+	def _step(_, idx):
+		y_pos = idx + (offset * int(offset > 0))
+		return theano.tensor.set_subtensor(mask[y_pos], 1), idx+1
+
+	diag = theano.scan(_step, [x[abs(offset):]], [None, 0])[0][0]
+
+	pad = tile(mask, (abs(offset), 1))
+	parts = [pad] * (offset < 0) + [diag] + [pad] * (offset > 0)
+	return concatenate(parts, axis = 0)
 
 
 def random_uniform_variable(shape, low, high, dtype=None, name=None):
@@ -872,9 +921,32 @@ def spatial_3d_padding(x, padding=(1, 1, 1), dim_ordering='default'):
         raise ValueError('Invalid dim_ordering:', dim_ordering)
     return T.set_subtensor(output[indices], x)
 
-
 def stack(x, axis = 0):
     return T.stack(x, axis = axis)
+
+def square_stack(x, axis = 0):
+	ndim = x.ndim
+	
+	axes = list(range(ndim))
+	if axis == -1: 
+		axes[0] = len(axes) - 1
+	else: 
+		axes[0] = axis
+	axes[axis] = 0
+
+	x_tmp = permute_dimensions(x, axes)
+
+	def step(_): 
+		return x
+	
+	out = theano.scan(step, [x_tmp], [None])[0]
+	
+	if axis == -1: 
+		axes = list(range(1, ndim + 1)) + [0]
+	else: 
+		axes = list(range(1, axis + 1)) + [0] + list(range(axis + 1, ndim + 1))
+	
+	return permute_dimensions(out, axes)
 
 
 def one_hot(indices, nb_classes):
