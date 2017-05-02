@@ -38,7 +38,7 @@ class DecompositionLayer(Layer):
 
 		if self.return_sequences:
 			return (input_shape[0], timesteps_causer, input_shape[1]) + input_shape[3:]
-		return (input_shape[0], timesteps_causer, input_shape[1]) + input_shape[3:]
+		return (input_shape[0], timesteps_causer) + input_shape[3:]
 	
 	def get_config(self):
 		config = {'return_sequences': self.return_sequences,
