@@ -210,7 +210,7 @@ def test_unit_tests_Decomposition():
 
     pred = m.predict(X)[0]
 
-    assert np.allclose(np.array([mbeta1, mbeta2, mbeta2]), pred)
+    assert np.allclose(np.array([mbeta1, mbeta2, np.zeros_like(mbeta2)]), pred)
     
     mgamma1 = np.exp(np.dot(o2 * (np.tanh(f2 * c1) - np.tanh(f1*f2*c0)), Wout))
     mgamma2 = np.exp(np.dot(o2 * (np.tanh(c2) - np.tanh(f2 * c1)), Wout))
@@ -225,7 +225,7 @@ def test_unit_tests_Decomposition():
 
     pred = m.predict(X)[0]
     
-    assert np.allclose(np.array([mgamma1, mgamma2, mgamma2]), pred)
+    assert np.allclose(np.array([mgamma1, mgamma2, np.zeros_like(mgamma2)]), pred)
     
     # with bigram
     
@@ -362,7 +362,7 @@ def test_unit_tests_Decomposition():
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
     pred = m.predict(X)[0]
     
-    assert np.allclose(np.array([mdelta1, mdelta2, mdelta2]), pred)
+    assert np.allclose(np.array([mdelta1, mdelta2, numpy.zeros_like(mdelta2)]), pred)
     
     momega1 = np.exp(np.dot((z2 * h1) - (z2 * z1 * h0), Wout))
     momega2 = np.exp(np.dot(h2 - (z2 * h1), Wout))
@@ -376,7 +376,7 @@ def test_unit_tests_Decomposition():
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
     pred = m.predict(X)[0]
     
-    assert np.allclose(np.array([momega1, momega2, momega2]), pred)
+    assert np.allclose(np.array([momega1, momega2, numpy.zeros_like(momega2)]), pred)
 
 
     # with bigram
@@ -729,7 +729,7 @@ def test_unit_tests_Decomposition_bidirectional():
             o1b * (np.tanh(c2b * f1b) - np.tanh(c4))]), Wout))
 
 
-    assert(np.allclose(pred_mg[:2], np.array([mgamma1, mgamma2])))
+    assert(np.allclose(pred_mg[:2], np.array([mgamma1, mgamma2, numpy.zeros_like(mgamma2)])))
 
 
 
