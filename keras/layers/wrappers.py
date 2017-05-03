@@ -61,7 +61,7 @@ class ErasureWrapper(Wrapper):
 	def call(self, x, mask = None):
 		ndim = x.ndim
 		if mask is None:
-                        mask = K.ones_like(x[tuple([slice(None), slice(None)] + [0 for _ in range(2, ndim)])])
+			mask = K.ones_like(x[tuple([slice(None), slice(None)] + [0 for _ in range(2, ndim)])])
 		
 		
 		orig_score = self.layer.call(x, mask)
@@ -69,25 +69,26 @@ class ErasureWrapper(Wrapper):
 		
 		diag = K.diag_from_vec(mask[0])
 		for i in range(1, self.ngram):
-                        diag = diag + K.diag_from_vec(mask[0], offset = 1)
-		    
+			diag = diag + K.diag_from_vec(mask[0], offset = 1)
+			
+		if self.ngram > 1:
+			diag = diag[:(-1)*(self.ngram - 1)] # timesteps(erasure, causer), timesteps(rnn, causee?)
 		diag = K.expand_dims(diag, 0) # 1, timesteps (erasure), timesteps (rnn)
-		diag = diag[:,(self.ngram - 1):]
 		mask_stacked = mask_stacked[:,(self.ngram - 1):]
 		
-		anti_diag = diag == 0 # sqare matrix with 0 on diagonal and 1 elsewhere
+		anti_diag = -1 * (diag - 1) # sqare matrix with 0 on diagonal and 1 elsewhere
 		knock_mask_stacked = mask_stacked*anti_diag # knock out ones on the diagonals (zeros remain zeros in any case)
 		
 		def step(_mask, _):
-                        return orig_score - self.layer.call(x, mask = _mask), []
+			return orig_score - self.layer.call(x, mask = _mask), []
 		
 		_, outputs, _, _ = K.rnn(step, knock_mask_stacked, initial_states=[]) # samples, causers, ...
 		return outputs
-	    
+		
 	def get_output_shape_for(self, input_shape):
 		timesteps_causer = input_shape[1]
 		if not input_shape[1] is None:
-                        timesteps_causer = timesteps_causer - self.ngram + 1
+			timesteps_causer = timesteps_causer - self.ngram + 1
 		
 		return (input_shape[0], timesteps_causer) + self.layer.get_output_shape_for(input_shape)[1:]
 
