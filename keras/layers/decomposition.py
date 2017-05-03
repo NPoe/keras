@@ -43,7 +43,7 @@ class DecompositionLayer(Layer):
 	def get_config(self):
 		config = {'return_sequences': self.return_sequences,
 				  'go_backwards': self.go_backwards,
-				  'stateful': self.stateful}
+                                  'stateful': self.stateful, 'ngram': self.ngram}
 		
 		config['input_dim'] = self.input_dim
 		config['input_length'] = self.input_length
@@ -58,9 +58,12 @@ class DecompositionLayer(Layer):
 
 		sequence = self.get_sequence(x)
 		
-		
 		if mask is None:
 			mask = K.ones_like(x[tuple([slice(None), slice(None)] + [0 for _ in range(ndim - 2)])]) # (samples, timesteps)
+
+		if self.go_backwards:
+			sequence = sequence[:,::-1]
+			mask = mask[:,::-1]
 
 		if self.return_sequences:
 			mask_stacked = K.square_stack(mask, 1) # (samples, causees, causers)
@@ -72,7 +75,6 @@ class DecompositionLayer(Layer):
 			sequence_stacked = K.expand_dims(sequence, 1) # (samples, 1, causers, ...)
 			mask_stacked = K.expand_dims(mask, 1) # (samples, 1, causers)
 	
-		mask_stacked = mask_stacked[:,:,(self.ngram-1):]
 		sequence_stacked = self.prep_sequence(sequence_stacked, mask_stacked, x)
 		
 		for i in range(ndim - 3):
@@ -82,10 +84,11 @@ class DecompositionLayer(Layer):
 			sequence_stacked = sequence_stacked[:,:,::-1]
 
 		(left, right) = self.shift_sequence(sequence_stacked)
+		(left_mask, right_mask) = self.shift_sequence(mask_stacked)
 
 		subtraction = right - left
-		subtraction = subtraction * mask_stacked
-		
+		subtraction = subtraction * right_mask
+	
 		out = self.finalize(subtraction, x)
 		if not self.return_sequences:
 			out = K.squeeze(out, 1) # samples, causers, ...
@@ -117,14 +120,14 @@ class LSTMDecompositionLayer(DecompositionLayer):
 
 	def finalize(self, sequence, x):
 		o = x[:,:,4]
-		o = K.expand_dims(o, 1) # samples, 1, causers, ...
+		o = K.expand_dims(o, 2) # samples, causers, 1, ...
 
 		if self.return_sequences:
 			return sequence * o
-
+		
 		else:
-			oT = o[:,:, -1 * (-1 * int(self.go_backwards))] # samples, 1, last_causer
-			return sequence * oT
+			oT = o[:,1 - 2 * int(not self.go_backwards)] # samples, 1, 1, ...
+			return sequence * K.expand_dims(oT, 1)
 
 
 class BetaLayerGRU(GRUDecompositionLayer):
@@ -133,8 +136,7 @@ class BetaLayerGRU(GRUDecompositionLayer):
 
 class GammaLayerGRU(GRUDecompositionLayer):
 	def prep_sequence(self, sequence_stacked, mask_stacked, x):
-		h = sequence_stacked
-		z = x[:,:,0]
+		z = x[:,:,1]
 		
 		def __step(__z, __states):
 			return __states[0], [__z * __states[0]]
@@ -147,8 +149,7 @@ class GammaLayerGRU(GRUDecompositionLayer):
 				mask = _mask, 
 				go_backwards = not self.go_backwards)
 			
-			if not self.go_backwards:
-				outz = outz[:,::-1]
+			outz = outz[:,::-1]
 			return outz, []
 
 		_, out, _, _ = K.rnn(
@@ -156,7 +157,7 @@ class GammaLayerGRU(GRUDecompositionLayer):
 			mask_stacked,
 			initial_states = [])
 
-		return out * h
+		return out * sequence_stacked
 
 class BetaLayerLSTM(LSTMDecompositionLayer):
 	def prep_sequence(self, sequence_stacked, mask_stacked, x):
@@ -164,7 +165,6 @@ class BetaLayerLSTM(LSTMDecompositionLayer):
 
 class GammaLayerLSTM(LSTMDecompositionLayer):
 	def prep_sequence(self, sequence_stacked, mask_stacked, x):
-		c = sequence_stacked
 		f = x[:,:,3]
 
 		def __step(__f, __states):
@@ -178,8 +178,7 @@ class GammaLayerLSTM(LSTMDecompositionLayer):
 				mask = _mask, 
 				go_backwards = not self.go_backwards)
 
-			if not self.go_backwards:
-				outf = outf[:,::-1]
+			outf = outf[:,::-1]
 			return outf, []
 
 		_, out, _, _ = K.rnn(
@@ -187,4 +186,4 @@ class GammaLayerLSTM(LSTMDecompositionLayer):
 			mask_stacked,
 			initial_states = [])
 	   
-		return activations.get(self.activation)(out * c)
+		return activations.get(self.activation)(out * sequence_stacked)
