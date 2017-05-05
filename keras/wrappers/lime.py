@@ -116,9 +116,9 @@ class TextLime(Lime):
 
 
             simple_model = Sequential()
-            simple_model.add(Dense(input_shape = (x_len,), output_dim = 1, activation = "sigmoid", bias = False))
+            simple_model.add(Dense(input_shape = (x_len,), units = 1, activation = "sigmoid", bias = False))
             simple_model.compile(loss = self.loss, optimizer = "rmsprop", metrics = ["accuracy"])
-            simple_model.fit(X_binary, y, verbose = 0, nb_epoch = 10000, \
+            simple_model.fit(X_binary, y, verbose = 0, epoch = 2000, \
                     callbacks = [EarlyStopping(monitor="loss", min_delta = MIN_DELTA[self.loss], patience = 3)])
 
             weights_cl = simple_model.layers[-1].weights[0].container.storage[0].squeeze()
