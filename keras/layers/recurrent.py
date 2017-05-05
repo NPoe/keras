@@ -421,7 +421,7 @@ class Recurrent(Layer):
         # initialize state if None
         if self.states[0] is None:
             self.states = [K.zeros((batch_size, self.units))
-                           for _ in self.num_states]
+                           for _ in range(self.num_states)]
         elif states is None:
             for state in self.states:
                 K.set_value(state, np.zeros((batch_size, self.units)))
