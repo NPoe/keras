@@ -1,0 +1,1433 @@
+============================= test session starts ==============================
+platform linux -- Python 3.5.2, pytest-3.0.6, py-1.4.32, pluggy-0.4.0 -- /usr/bin/python3
+cachedir: ../../../.cache
+rootdir: /home/nina/Masterarbeit/keras, inifile: pytest.ini
+plugins: cov-2.4.0, xdist-1.15.0, pylama-7.3.3
+gw0 I / gw1 I
+[gw0] linux Python 3.5.2 cwd: /home/nina/Masterarbeit/keras/tests/keras/layers
+[gw1] linux Python 3.5.2 cwd: /home/nina/Masterarbeit/keras/tests/keras/layers
+[gw0] Python 3.5.2 (default, Nov 17 2016, 17:05:23)  -- [GCC 5.4.0 20160609]
+[gw1] Python 3.5.2 (default, Nov 17 2016, 17:05:23)  -- [GCC 5.4.0 20160609]
+gw0 [8] / gw1 [8]
+
+scheduling tests via LoadScheduling
+
+test_decomposition.py::test_BetaLayer 
+test_decomposition.py::test_ErasureWrapper 
+[gw1] PASSED test_decomposition.py::test_BetaLayer 
+test_decomposition.py::test_return_sequences 
+[gw1] FAILED test_decomposition.py::test_return_sequences 
+test_decomposition.py::test_bidirectional 
+[gw0] FAILED test_decomposition.py::test_ErasureWrapper 
+test_decomposition.py::test_GammaLayer 
+[gw0] PASSED test_decomposition.py::test_GammaLayer 
+test_decomposition.py::test_unit_tests_Erasure 
+[gw1] FAILED test_decomposition.py::test_bidirectional 
+[gw0] PASSED test_decomposition.py::test_unit_tests_Erasure 
+test_decomposition.py::test_unit_tests_Decomposition_bidirectional 
+test_decomposition.py::test_unit_tests_Decomposition 
+[gw0] FAILED test_decomposition.py::test_unit_tests_Decomposition_bidirectional 
+[gw1] PASSED test_decomposition.py::test_unit_tests_Decomposition 
+
+----------- coverage: platform linux, python 3.5.2-final-0 -----------
+Name                                                                                                   Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------------------------------------------------------------------
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/__init__.py                            17      0   100%
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/activations.py                         42     21    50%   7-15, 20-27, 36, 40, 44, 48, 64, 69
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/__init__.py                5      5     0%   1-5
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/audio_conv_utils.py       41     41     0%   1-92
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/imagenet_utils.py         60     60     0%   1-139
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/inception_v3.py          153    153     0%   2-330
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/music_tagger_crnn.py      76     76     0%   2-160
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/resnet50.py              115    115     0%   2-254
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/vgg16.py                  70     70     0%   2-166
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/vgg19.py                  73     73     0%   2-169
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/applications/xception.py              115    115     0%   2-233
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/backend/__init__.py                    55     12    78%   20, 24, 49-54, 57-59, 65-69
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/backend/common.py                      39      8    79%   84, 150, 178, 204-207, 212-213
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/backend/tensorflow_backend.py        1014   1014     0%   1-3138
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/backend/theano_backend.py            1044    699    33%   9-10, 13-14, 28, 33-36, 43-44, 54, 66, 83-84, 99, 107-108, 138, 152, 173-175, 190-194, 211-216, 242, 251, 262, 266, 270, 274, 288, 332-340, 345, 355, 362, 366, 378, 387, 392, 396, 408, 412, 416, 428-429, 437, 441, 445, 449, 453-457, 461, 469, 473, 477, 481, 485, 489, 493, 497, 506-512, 520-529, 539-573, 581-616, 624-630, 664, 675-684, 695-706, 716-718, 731, 741, 749-750, 760, 784-789, 800-805, 813-842, 852-882, 889-922, 932, 945, 957-961, 974, 981, 994, 1003, 1010-1011, 1021-1022, 1036-1040, 1045, 1052, 1102-1103, 1120-1147, 1177-1178, 1181-1195, 1234-1238, 1242-1252, 1256-1266, 1272-1273, 1288-1289, 1293-1297, 1301, 1305, 1309, 1314, 1324-1327, 1331-1335, 1362-1380, 1384-1385, 1400-1402, 1408-1414, 1418-1424, 1428-1434, 1438-1444, 1448-1456, 1461-1472, 1477-1488, 1493-1504, 1509-1520, 1524-1531, 1535-1544, 1556, 1572-1612, 1630-1662, 1669, 1674, 1691-1727, 1738-1791, 1796-1859, 1864-1933, 1940-1998, 2005-2010, 2014-2019, 2023-2028, 2038-2040, 2044-2046, 2050-2072, 2076-2095, 2099-2102, 2123-2135, 2152, 2168-2176, 2192-2200
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/callbacks.py                          454    371    18%   21-22, 25, 38-40, 43, 46-47, 50-51, 60-65, 74-76, 85-97, 106-117, 127-129, 137-139, 170, 173, 176, 179, 182, 185, 188, 191, 194, 204-205, 208-216, 219-223, 231-232, 235-239, 242-243, 246-257, 260-265, 277-278, 281-284, 322-349, 352-384, 410-438, 441-442, 445-457, 460-461, 487-494, 497-510, 524-525, 528-534, 570-578, 581-636, 639-665, 668, 709-726, 731-745, 748, 751-776, 779, 802-808, 811-817, 820-843, 846-847, 905-930
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/constraints.py                         48     23    52%   9, 12, 40-41, 44-47, 50, 60-61, 82, 85, 90, 122-125, 128-131, 134
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/datasets/__init__.py                    0      0   100%
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/datasets/cifar.py                      17     17     0%   2-33
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/datasets/cifar10.py                    26     26     0%   1-40
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/datasets/cifar100.py                   22     22     0%   1-41
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/datasets/imdb.py                       64     64     0%   1-133
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/datasets/mnist.py                      14     14     0%   1-30
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/datasets/reuters.py                    53     53     0%   2-111
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/__init__.py                      8      0   100%
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py                   1407    892    37%   33-34, 49, 53, 147, 151, 172-174, 177, 182, 188, 206-212, 326, 361, 371-375, 379, 385, 388, 396, 426, 428, 432, 443, 448-449, 456, 461-464, 471, 477-478, 486-490, 494, 511, 542-545, 554, 573-574, 583, 587-588, 595, 619, 624, 630-638, 669-682, 707-719, 724, 731, 738, 745, 752, 759, 769-778, 787-796, 805-811, 820-827, 836-847, 861-872, 881-906, 909-934, 937-945, 948-956, 974, 983, 988, 999-1000, 1037-1045, 1085, 1090-1094, 1101-1105, 1110-1113, 1124, 1141-1145, 1211, 1271-1309, 1316-1374, 1380-1428, 1436-1469, 1473-1513, 1516-1550, 1553-1583, 1596-1625, 1664-1696, 1751, 1760, 1797-1798, 1804-1805, 1820-1821, 1848, 1915, 1921, 1968, 1994, 2014, 2060-2074, 2078-2094, 2106-2113, 2121-2123, 2135-2136, 2141-2148, 2152-2158, 2163, 2171-2179, 2185-2188, 2196-2203, 2207-2219, 2243-2254, 2261, 2267-2268, 2271-2346, 2362-2479, 2482-2547, 2553-2605, 2635-2636, 2651-2660, 2663-2690, 2707-2717, 2726-2800, 2807-2849, 2853-2861, 2869-2883, 2895-2896, 2899-2906, 2926, 2931
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/training.py                    849    656    23%   15-16, 47-53, 55-79, 82, 89, 98-99, 105, 108, 119, 129-153, 162, 168, 174-195, 202-227, 239-251, 261-269, 301-308, 346-396, 409-414, 425-458, 461, 470-486, 525-544, 550-561, 563-569, 585-607, 609-627, 630-633, 669-670, 674, 679, 687-691, 699-724, 746, 750-764, 770-815, 818-820, 823-826, 829-838, 845, 848, 888-974, 993, 1000, 1006, 1015, 1018, 1035-1067, 1072-1109, 1170-1250, 1281-1293, 1315-1316, 1325, 1369-1382, 1412-1424, 1429-1439, 1509-1669, 1700-1761, 1787-1849
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/initializations.py                     62     34    45%   11-28, 37, 47-49, 58-60, 75-77, 83-85, 94-100, 104-108
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/__init__.py                     14      0   100%
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/advanced_activations.py        144    113    22%   30-32, 35, 38-40, 76-83, 86-99, 102-108, 111-113, 139-141, 144, 147-149, 185-193, 196-211, 214-219, 222-225, 251-253, 256, 259-261, 301-310, 313-335, 339-355, 358-363
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/convolutional.py               699    588    16%   101-126, 129-150, 153-157, 160-168, 171-186, 273-278, 289-294, 297-306, 309-311, 395-420, 423-449, 452-469, 472-484, 487-502, 632-639, 655-667, 670-683, 686-688, 778-786, 802-821, 824-837, 840-842, 935-973, 976-1011, 1014-1033, 1036-1049, 1052-1070, 1141-1168, 1171-1202, 1205-1228, 1231-1243, 1246-1262, 1281-1283, 1286-1287, 1290-1291, 1294-1296, 1328-1335, 1338-1353, 1356, 1360-1362, 1394-1401, 1404-1423, 1426, 1430-1432, 1458-1481, 1484-1485, 1490, 1493-1495, 1537-1573, 1576-1591, 1594, 1602-1604, 1632-1639, 1642-1661, 1664, 1668-1670, 1691-1695, 1698-1699, 1702-1706, 1711-1714, 1717-1719, 1761-1774, 1777-1778, 1781-1792, 1795-1831, 1837-1839, 1868-1883, 1886-1887, 1890-1909, 1912-2003, 2010-2012
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/convolutional_recurrent.py     228    200    12%   85-95, 98-101, 105-130, 133, 136, 140-147, 150, 153-180, 183-190, 264-300, 303-373, 376-397, 403-421, 426-441, 444-476, 479-501, 504-515
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/core.py                        497    355    29%   67-69, 94-100, 103, 106-112, 115-117, 146, 149-151, 187-191, 194-201, 238-242, 245-252, 273-275, 278, 281-283, 322-323, 348-370, 373, 382-392, 395-397, 431-432, 435-440, 443, 446-448, 469-470, 473-480, 483, 511-513, 516, 519, 522-524, 528-529, 532-535, 538, 542, 545-547, 606-619, 622-655, 658-662, 665-688, 693-717, 805, 827, 848-859, 863-891, 911-917, 920-923, 988-1006, 1009-1030, 1033-1034, 1038-1042, 1045-1056, 1116-1137, 1140-1167, 1170-1180, 1183-1193, 1259-1282, 1285-1306, 1309, 1312-1337, 1340-1352
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/decomposition.py               117      3    97%   28, 57, 126
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/embeddings.py                   57     43    25%   75-92, 97-101, 104-112, 115-118, 121-125, 128-138, 141-151
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/lime.py                         84     84     0%   1-113
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/local.py                       170    149    12%   90-115, 118-140, 143-147, 150-166, 169-184, 268-295, 298-330, 333-350, 353-404, 407-422
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/noise.py                        33     21    36%   30-33, 36-39, 42-44, 70-74, 77-81, 84-86
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/normalization.py                58     50    14%   70-82, 85-106, 109-151, 154-161
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/pooling.py                     216    149    31%   16-26, 29-31, 35, 38-43, 46-50, 72, 77-79, 100, 105-107, 116-129, 132-149, 153, 156-161, 164-169, 203, 208-211, 245, 250-252, 261-274, 277-299, 305, 308-312, 315-320, 353, 358-360, 393, 398-401, 409-410, 413, 416, 430, 444, 452-456, 459-462, 465, 468-470, 495-498, 523-526, 534-538, 541-544, 547, 550-552, 577-580, 605-608
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/recurrent.py                   518    263    49%   31, 35, 39-42, 51-52, 182, 193, 204, 207, 219, 227, 239, 253-256, 270, 282, 291-302, 334-347, 353-392, 396-421, 424-432, 435-445, 448-465, 468-478, 526, 537-608, 616, 621-629, 694, 703-716, 722-727, 743-746, 751-756, 830, 842-902, 910, 916-931, 1001, 1018, 1027-1038, 1045-1051, 1068-1071, 1076-1081
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/wrappers.py                    202     51    75%   27-28, 31, 34-37, 41-43, 159-167, 185-186, 215, 219, 241, 244-246, 251-253, 258-261, 278-285, 288-289, 298, 309, 313-316, 320-322, 328, 339-341
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/metrics.py                             83     53    36%   6, 10, 15, 20, 24, 28, 32-35, 39-41, 45, 49, 53, 57, 61, 65-67, 71, 75-77, 88-103, 114-117, 128-131, 152-163, 171, 184
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/models.py                             492    363    26%   19-107, 111-185, 189-194, 201-204, 211-214, 273-274, 284, 292, 300, 304, 312, 336, 352-367, 381-383, 386-388, 392, 422-424, 428-453, 456-459, 462-467, 475-477, 481-484, 489-493, 497, 502, 505, 509, 512, 517, 522, 529-532, 541-544, 548, 552, 590-592, 607, 612-634, 638-657, 706-719, 749-762, 780, 786-788, 808-821, 841-854, 870-876, 891-895, 960-981, 1014-1034, 1060-1066, 1075-1092, 1098-1149
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/objectives.py                          42     17    60%   12, 16-19, 23-25, 29, 33, 41, 45, 49-51, 55, 59-61
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/optimizers.py                         342    265    23%   9, 13-15, 32-51, 71-72, 79, 82-88, 106-116, 124, 127-132, 136, 163-190, 193-198, 223-229, 232-254, 257-262, 289-309, 312-316, 338-344, 347-377, 380-385, 406-413, 416-446, 449-455, 476-483, 486-518, 521-527, 552-559, 562-600, 603-609, 617-619, 622-631, 635, 638, 641, 658-659
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/preprocessing/__init__.py               0      0   100%
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/preprocessing/image.py                426    426     0%   5-857
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/preprocessing/sequence.py              74     74     0%   2-186
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/preprocessing/text.py                 111    111     0%   2-265
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/regularizers.py                        59     33    44%   12, 15, 18, 23, 38, 41-60, 72-73, 76-81, 84, 96, 100, 104, 108, 112, 116
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/utils/__init__.py                       0      0   100%
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/utils/data_utils.py                    93     93     0%   2-160
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/utils/generic_utils.py                143    109    24%   33-34, 37-40, 43-44, 70, 89, 120, 124, 129, 133-142, 148, 160-166, 181-186, 201-210, 221-300, 303
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/utils/io_utils.py                      80     60    25%   11-12, 49-64, 67, 70-93, 97, 101-108, 112-120, 132-142
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/utils/layer_utils.py                   99     99     0%   1-179
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/utils/np_utils.py                      72     57    21%   23-29, 33-35, 39-44, 48-50, 54, 58-60, 64, 82-96, 113-123, 138-147
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/utils/test_utils.py                    84     73    13%   24-38, 47-123, 135-141
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/utils/visualize_util.py                60     60     0%   2-96
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/wrappers/__init__.py                    1      0   100%
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/wrappers/keras_lime.py                 61     61     0%   1-89
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/wrappers/lime.py                       95     69    27%   21-28, 32-33, 36-43, 48, 51, 54-62, 65, 70-76, 79, 83-129
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/wrappers/scikit_learn.py               92     92     0%   1-301
+------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                                  11489   8818    23%
+
+
+========================== slowest 10 test durations ===========================
+12.05s call     tests/keras/layers/test_decomposition.py::test_ErasureWrapper
+10.99s call     tests/keras/layers/test_decomposition.py::test_BetaLayer
+9.18s call     tests/keras/layers/test_decomposition.py::test_unit_tests_Decomposition
+7.44s call     tests/keras/layers/test_decomposition.py::test_bidirectional
+4.63s call     tests/keras/layers/test_decomposition.py::test_GammaLayer
+3.48s call     tests/keras/layers/test_decomposition.py::test_unit_tests_Erasure
+0.71s call     tests/keras/layers/test_decomposition.py::test_unit_tests_Decomposition_bidirectional
+0.52s call     tests/keras/layers/test_decomposition.py::test_return_sequences
+0.01s teardown tests/keras/layers/test_decomposition.py::test_ErasureWrapper
+0.01s teardown tests/keras/layers/test_decomposition.py::test_return_sequences
+=================================== FAILURES ===================================
+____________________________ test_return_sequences _____________________________
+[gw1] linux -- Python 3.5.2 /usr/bin/python3
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f7463cd7d30>
+
+    def dtype_specs(self):
+        """
+            Return a tuple (python type, c type, numpy typenum) that corresponds
+            to self.dtype.
+    
+            This function is used internally as part of C code generation.
+    
+            """
+        # TODO: add more type correspondances for e.g. int32, int64, float32,
+        # complex64, etc.
+        try:
+            return {
+                'float16': (float, 'npy_float16', 'NPY_FLOAT16'),
+                'float32': (float, 'npy_float32', 'NPY_FLOAT32'),
+                'float64': (float, 'npy_float64', 'NPY_FLOAT64'),
+                'bool': (bool, 'npy_bool', 'NPY_BOOL'),
+                'uint8': (int, 'npy_uint8', 'NPY_UINT8'),
+                'int8': (int, 'npy_int8', 'NPY_INT8'),
+                'uint16': (int, 'npy_uint16', 'NPY_UINT16'),
+                'int16': (int, 'npy_int16', 'NPY_INT16'),
+                'uint32': (int, 'npy_uint32', 'NPY_UINT32'),
+                'int32': (int, 'npy_int32', 'NPY_INT32'),
+                'uint64': (int, 'npy_uint64', 'NPY_UINT64'),
+                'int64': (int, 'npy_int64', 'NPY_INT64'),
+                'complex128': (complex, 'theano_complex128', 'NPY_COMPLEX128'),
+                'complex64': (complex, 'theano_complex64', 'NPY_COMPLEX64')
+>           }[self.dtype]
+E           KeyError: 'object'
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:270: KeyError
+
+During handling of the above exception, another exception occurred:
+
+x = (-1, None, 3), rtype = <class 'theano.tensor.var.TensorConstant'>
+name = None, ndim = None, dtype = None
+
+    def constant_or_value(x, rtype, name=None, ndim=None, dtype=None):
+        """Return a symbolic `Constant` with value `x`.
+    
+        Raises
+        ------
+        TypeError
+            `x` could not be converted to a numpy.ndarray.
+        ValueError
+            `x` could not be expanded to have ndim dimensions.
+    
+        """
+        x_ = scal.convert(x, dtype=dtype)
+    
+        bcastable = [d == 1 for d in x_.shape]
+        if ndim is not None:
+            if len(bcastable) < ndim:
+                bcastable = [True] * (ndim - len(bcastable)) + bcastable
+            elif len(bcastable) > ndim:
+                # TODO: strip off dimensions of size 1
+                raise ValueError(
+                    'ndarray could not be cast to constant with %i dimensions' %
+                    ndim)
+            assert len(bcastable) == ndim
+    
+        try:
+            if rtype is TensorConstant:
+                rval = rtype(
+>                   TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                    x_.copy(),
+                    name=name)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:250: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f7463cd7d30>
+dtype = dtype('O'), broadcastable = [False], name = None, sparse_grad = False
+
+    def __init__(self, dtype, broadcastable, name=None, sparse_grad=False):
+        self.dtype = str(dtype)
+        if self.dtype == 'floatX':
+            self.dtype = config.floatX
+        # broadcastable is immutable, and all elements are either
+        # True or False
+        self.broadcastable = tuple(bool(b) for b in broadcastable)
+>       self.dtype_specs()  # error checking is done there
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f7463cd7d30>
+
+    def dtype_specs(self):
+        """
+            Return a tuple (python type, c type, numpy typenum) that corresponds
+            to self.dtype.
+    
+            This function is used internally as part of C code generation.
+    
+            """
+        # TODO: add more type correspondances for e.g. int32, int64, float32,
+        # complex64, etc.
+        try:
+            return {
+                'float16': (float, 'npy_float16', 'NPY_FLOAT16'),
+                'float32': (float, 'npy_float32', 'NPY_FLOAT32'),
+                'float64': (float, 'npy_float64', 'NPY_FLOAT64'),
+                'bool': (bool, 'npy_bool', 'NPY_BOOL'),
+                'uint8': (int, 'npy_uint8', 'NPY_UINT8'),
+                'int8': (int, 'npy_int8', 'NPY_INT8'),
+                'uint16': (int, 'npy_uint16', 'NPY_UINT16'),
+                'int16': (int, 'npy_int16', 'NPY_INT16'),
+                'uint32': (int, 'npy_uint32', 'NPY_UINT32'),
+                'int32': (int, 'npy_int32', 'NPY_INT32'),
+                'uint64': (int, 'npy_uint64', 'NPY_UINT64'),
+                'int64': (int, 'npy_int64', 'NPY_INT64'),
+                'complex128': (complex, 'theano_complex128', 'NPY_COMPLEX128'),
+                'complex64': (complex, 'theano_complex64', 'NPY_COMPLEX64')
+            }[self.dtype]
+        except KeyError:
+            raise TypeError("Unsupported dtype for %s: %s"
+>                           % (self.__class__.__name__, self.dtype))
+E           TypeError: Unsupported dtype for TensorType: object
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:273: TypeError
+
+During handling of the above exception, another exception occurred:
+
+x = (-1, None, 3), name = None, ndim = None
+
+    def as_tensor_variable(x, name=None, ndim=None):
+        """Return `x`, transformed into a `TensorType`.
+    
+        This function is often used by `make_node` methods of `Op` subclasses
+        to turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
+        `TensorType` instances into valid input list elements.
+    
+        Parameters
+        ----------
+        x : Apply instance, Variable instance, numpy.ndarray, or number
+            This thing will be transformed into a `Variable` in a sensible way. An
+            ndarray argument will not be copied, but a list of numbers will be
+            copied to make an ndarray.
+        name : str or None
+            If a new `Variable` instance is created, it will be named with this
+            string.
+        ndim : None or integer
+            Return a Variable with this many dimensions.
+    
+        Raises
+        ------
+        ValueError
+            If an `Apply` with more than one output is fetched or
+            if `x` cannot be made into a Variable with `ndim` dimensions.
+        AsTensorError
+            If `x` cannot be converted to a TensorType Variable.
+    
+        """
+        if hasattr(x, '_as_TensorVariable'):
+            return x._as_TensorVariable()  # TODO: pass name and ndim arguments
+    
+        if isinstance(x, gof.Apply):
+            # use Apply's default output mechanism
+            if (x.op.default_output is None) and (len(x.outputs) != 1):
+                raise ValueError(
+                    "It is ambiguous which output of a multi-output Op has"
+                    " to be fetched.", x)
+    
+            x = x.default_output()
+        if isinstance(x, Variable):
+            if isinstance(x.type, scal.Scalar):
+                x = tensor_from_scalar(x)
+    
+            if not isinstance(x.type, TensorType):
+                raise AsTensorError(
+                    "Variable type field must be a TensorType.", x, x.type)
+    
+            if ndim is None:
+                return x
+            else:
+                if (x.type.ndim > ndim):
+                    # strip off leading broadcastable dimensions
+                    first_non_broadcastable = [idx for idx in xrange(x.ndim)
+                                               if not x.broadcastable[idx]][0]
+                    x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
+                    if x.ndim > ndim:
+                        raise ValueError(
+                            'TensorType could not be cast to have %i dimensions'
+                            % ndim, x.type
+                        )
+                    return x
+                elif (x.type.ndim < ndim):
+                    return shape_padleft(x, n_ones=(ndim - x.type.ndim))
+                else:
+                    return x
+        if isinstance(x, (tuple, list)) and python_any(isinstance(xi, Variable)
+                                                       for xi in x):
+            try:
+                return stack(x)
+            except (TypeError, ValueError):
+                pass
+    
+        if isinstance(x, bool):
+            raise AsTensorError(
+                "Cannot cast True or False as a tensor variable. Please use 1 or "
+                "0. This error might be caused by using the == operator on "
+                "Variables. v == w does not do what you think it does, "
+                "use theano.tensor.eq(v, w) instead.")
+    
+        try:
+>           return constant(x, name=name, ndim=ndim)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 3), name = None, ndim = None, dtype = None
+
+    def constant(x, name=None, ndim=None, dtype=None):
+        ret = constant_or_value(x, rtype=TensorConstant, name=name, ndim=ndim,
+>                               dtype=dtype)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:264: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 3), rtype = <class 'theano.tensor.var.TensorConstant'>
+name = None, ndim = None, dtype = None
+
+    def constant_or_value(x, rtype, name=None, ndim=None, dtype=None):
+        """Return a symbolic `Constant` with value `x`.
+    
+        Raises
+        ------
+        TypeError
+            `x` could not be converted to a numpy.ndarray.
+        ValueError
+            `x` could not be expanded to have ndim dimensions.
+    
+        """
+        x_ = scal.convert(x, dtype=dtype)
+    
+        bcastable = [d == 1 for d in x_.shape]
+        if ndim is not None:
+            if len(bcastable) < ndim:
+                bcastable = [True] * (ndim - len(bcastable)) + bcastable
+            elif len(bcastable) > ndim:
+                # TODO: strip off dimensions of size 1
+                raise ValueError(
+                    'ndarray could not be cast to constant with %i dimensions' %
+                    ndim)
+            assert len(bcastable) == ndim
+    
+        try:
+            if rtype is TensorConstant:
+                rval = rtype(
+                    TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                    x_.copy(),
+                    name=name)
+                return rval
+            else:
+                # leave the shape out of the type
+                return rtype(TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                             x_, name=name)
+        except Exception:
+>           raise TypeError("Could not convert %s to TensorType" % x, type(x))
+E           TypeError: not all arguments converted during string formatting
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:259: TypeError
+
+During handling of the above exception, another exception occurred:
+
+    def test_return_sequences():
+        for layer in (GammaLayerGRU, BetaLayerGRU):
+            for i in range(1,4):
+                model = Sequential()
+                model.add(GRU(input_shape=(None, embedding_dim), output_dim = output_dim, \
+                        return_sequences = True, return_all_states = True))
+                model.add(layer(ngram = i, return_sequences = True))
+>               model.add(TimeDistributed(TimeDistributed(Dense(output_dim = num_classes, activation = "exp"))))
+
+test_decomposition.py:92: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/models.py:334: in add
+    output_tensor = layer(self.outputs[0])
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:578: in __call__
+    self.add_inbound_node(inbound_layers, node_indices, tensor_indices)
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:641: in add_inbound_node
+    Node.create_node(self, inbound_layers, node_indices, tensor_indices)
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:166: in create_node
+    output_tensors = to_list(outbound_layer.call(input_tensors[0], mask=input_masks[0]))
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/wrappers.py:176: in call
+    inputs = K.reshape(inputs, (-1,) + input_shape[2:])
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/backend/theano_backend.py:636: in reshape
+    y = T.reshape(x, shape)
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:4895: in reshape
+    newshape = as_tensor_variable(newshape)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 3), name = None, ndim = None
+
+    def as_tensor_variable(x, name=None, ndim=None):
+        """Return `x`, transformed into a `TensorType`.
+    
+        This function is often used by `make_node` methods of `Op` subclasses
+        to turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
+        `TensorType` instances into valid input list elements.
+    
+        Parameters
+        ----------
+        x : Apply instance, Variable instance, numpy.ndarray, or number
+            This thing will be transformed into a `Variable` in a sensible way. An
+            ndarray argument will not be copied, but a list of numbers will be
+            copied to make an ndarray.
+        name : str or None
+            If a new `Variable` instance is created, it will be named with this
+            string.
+        ndim : None or integer
+            Return a Variable with this many dimensions.
+    
+        Raises
+        ------
+        ValueError
+            If an `Apply` with more than one output is fetched or
+            if `x` cannot be made into a Variable with `ndim` dimensions.
+        AsTensorError
+            If `x` cannot be converted to a TensorType Variable.
+    
+        """
+        if hasattr(x, '_as_TensorVariable'):
+            return x._as_TensorVariable()  # TODO: pass name and ndim arguments
+    
+        if isinstance(x, gof.Apply):
+            # use Apply's default output mechanism
+            if (x.op.default_output is None) and (len(x.outputs) != 1):
+                raise ValueError(
+                    "It is ambiguous which output of a multi-output Op has"
+                    " to be fetched.", x)
+    
+            x = x.default_output()
+        if isinstance(x, Variable):
+            if isinstance(x.type, scal.Scalar):
+                x = tensor_from_scalar(x)
+    
+            if not isinstance(x.type, TensorType):
+                raise AsTensorError(
+                    "Variable type field must be a TensorType.", x, x.type)
+    
+            if ndim is None:
+                return x
+            else:
+                if (x.type.ndim > ndim):
+                    # strip off leading broadcastable dimensions
+                    first_non_broadcastable = [idx for idx in xrange(x.ndim)
+                                               if not x.broadcastable[idx]][0]
+                    x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
+                    if x.ndim > ndim:
+                        raise ValueError(
+                            'TensorType could not be cast to have %i dimensions'
+                            % ndim, x.type
+                        )
+                    return x
+                elif (x.type.ndim < ndim):
+                    return shape_padleft(x, n_ones=(ndim - x.type.ndim))
+                else:
+                    return x
+        if isinstance(x, (tuple, list)) and python_any(isinstance(xi, Variable)
+                                                       for xi in x):
+            try:
+                return stack(x)
+            except (TypeError, ValueError):
+                pass
+    
+        if isinstance(x, bool):
+            raise AsTensorError(
+                "Cannot cast True or False as a tensor variable. Please use 1 or "
+                "0. This error might be caused by using the == operator on "
+                "Variables. v == w does not do what you think it does, "
+                "use theano.tensor.eq(v, w) instead.")
+    
+        try:
+            return constant(x, name=name, ndim=ndim)
+        except TypeError:
+            try:
+                str_x = str(x)
+            except Exception:
+                str_x = repr(x)
+>           raise AsTensorError("Cannot convert %s to TensorType" % str_x, type(x))
+E           theano.tensor.var.AsTensorError: ('Cannot convert (-1, None, 3) to TensorType', <class 'tuple'>)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:212: AsTensorError
+_____________________________ test_ErasureWrapper ______________________________
+[gw0] linux -- Python 3.5.2 /usr/bin/python3
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f9c7002f0b8>
+
+    def dtype_specs(self):
+        """
+            Return a tuple (python type, c type, numpy typenum) that corresponds
+            to self.dtype.
+    
+            This function is used internally as part of C code generation.
+    
+            """
+        # TODO: add more type correspondances for e.g. int32, int64, float32,
+        # complex64, etc.
+        try:
+            return {
+                'float16': (float, 'npy_float16', 'NPY_FLOAT16'),
+                'float32': (float, 'npy_float32', 'NPY_FLOAT32'),
+                'float64': (float, 'npy_float64', 'NPY_FLOAT64'),
+                'bool': (bool, 'npy_bool', 'NPY_BOOL'),
+                'uint8': (int, 'npy_uint8', 'NPY_UINT8'),
+                'int8': (int, 'npy_int8', 'NPY_INT8'),
+                'uint16': (int, 'npy_uint16', 'NPY_UINT16'),
+                'int16': (int, 'npy_int16', 'NPY_INT16'),
+                'uint32': (int, 'npy_uint32', 'NPY_UINT32'),
+                'int32': (int, 'npy_int32', 'NPY_INT32'),
+                'uint64': (int, 'npy_uint64', 'NPY_UINT64'),
+                'int64': (int, 'npy_int64', 'NPY_INT64'),
+                'complex128': (complex, 'theano_complex128', 'NPY_COMPLEX128'),
+                'complex64': (complex, 'theano_complex64', 'NPY_COMPLEX64')
+>           }[self.dtype]
+E           KeyError: 'object'
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:270: KeyError
+
+During handling of the above exception, another exception occurred:
+
+x = (-1, None, 3), rtype = <class 'theano.tensor.var.TensorConstant'>
+name = None, ndim = None, dtype = None
+
+    def constant_or_value(x, rtype, name=None, ndim=None, dtype=None):
+        """Return a symbolic `Constant` with value `x`.
+    
+        Raises
+        ------
+        TypeError
+            `x` could not be converted to a numpy.ndarray.
+        ValueError
+            `x` could not be expanded to have ndim dimensions.
+    
+        """
+        x_ = scal.convert(x, dtype=dtype)
+    
+        bcastable = [d == 1 for d in x_.shape]
+        if ndim is not None:
+            if len(bcastable) < ndim:
+                bcastable = [True] * (ndim - len(bcastable)) + bcastable
+            elif len(bcastable) > ndim:
+                # TODO: strip off dimensions of size 1
+                raise ValueError(
+                    'ndarray could not be cast to constant with %i dimensions' %
+                    ndim)
+            assert len(bcastable) == ndim
+    
+        try:
+            if rtype is TensorConstant:
+                rval = rtype(
+>                   TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                    x_.copy(),
+                    name=name)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:250: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f9c7002f0b8>
+dtype = dtype('O'), broadcastable = [False], name = None, sparse_grad = False
+
+    def __init__(self, dtype, broadcastable, name=None, sparse_grad=False):
+        self.dtype = str(dtype)
+        if self.dtype == 'floatX':
+            self.dtype = config.floatX
+        # broadcastable is immutable, and all elements are either
+        # True or False
+        self.broadcastable = tuple(bool(b) for b in broadcastable)
+>       self.dtype_specs()  # error checking is done there
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f9c7002f0b8>
+
+    def dtype_specs(self):
+        """
+            Return a tuple (python type, c type, numpy typenum) that corresponds
+            to self.dtype.
+    
+            This function is used internally as part of C code generation.
+    
+            """
+        # TODO: add more type correspondances for e.g. int32, int64, float32,
+        # complex64, etc.
+        try:
+            return {
+                'float16': (float, 'npy_float16', 'NPY_FLOAT16'),
+                'float32': (float, 'npy_float32', 'NPY_FLOAT32'),
+                'float64': (float, 'npy_float64', 'NPY_FLOAT64'),
+                'bool': (bool, 'npy_bool', 'NPY_BOOL'),
+                'uint8': (int, 'npy_uint8', 'NPY_UINT8'),
+                'int8': (int, 'npy_int8', 'NPY_INT8'),
+                'uint16': (int, 'npy_uint16', 'NPY_UINT16'),
+                'int16': (int, 'npy_int16', 'NPY_INT16'),
+                'uint32': (int, 'npy_uint32', 'NPY_UINT32'),
+                'int32': (int, 'npy_int32', 'NPY_INT32'),
+                'uint64': (int, 'npy_uint64', 'NPY_UINT64'),
+                'int64': (int, 'npy_int64', 'NPY_INT64'),
+                'complex128': (complex, 'theano_complex128', 'NPY_COMPLEX128'),
+                'complex64': (complex, 'theano_complex64', 'NPY_COMPLEX64')
+            }[self.dtype]
+        except KeyError:
+            raise TypeError("Unsupported dtype for %s: %s"
+>                           % (self.__class__.__name__, self.dtype))
+E           TypeError: Unsupported dtype for TensorType: object
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:273: TypeError
+
+During handling of the above exception, another exception occurred:
+
+x = (-1, None, 3), name = None, ndim = None
+
+    def as_tensor_variable(x, name=None, ndim=None):
+        """Return `x`, transformed into a `TensorType`.
+    
+        This function is often used by `make_node` methods of `Op` subclasses
+        to turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
+        `TensorType` instances into valid input list elements.
+    
+        Parameters
+        ----------
+        x : Apply instance, Variable instance, numpy.ndarray, or number
+            This thing will be transformed into a `Variable` in a sensible way. An
+            ndarray argument will not be copied, but a list of numbers will be
+            copied to make an ndarray.
+        name : str or None
+            If a new `Variable` instance is created, it will be named with this
+            string.
+        ndim : None or integer
+            Return a Variable with this many dimensions.
+    
+        Raises
+        ------
+        ValueError
+            If an `Apply` with more than one output is fetched or
+            if `x` cannot be made into a Variable with `ndim` dimensions.
+        AsTensorError
+            If `x` cannot be converted to a TensorType Variable.
+    
+        """
+        if hasattr(x, '_as_TensorVariable'):
+            return x._as_TensorVariable()  # TODO: pass name and ndim arguments
+    
+        if isinstance(x, gof.Apply):
+            # use Apply's default output mechanism
+            if (x.op.default_output is None) and (len(x.outputs) != 1):
+                raise ValueError(
+                    "It is ambiguous which output of a multi-output Op has"
+                    " to be fetched.", x)
+    
+            x = x.default_output()
+        if isinstance(x, Variable):
+            if isinstance(x.type, scal.Scalar):
+                x = tensor_from_scalar(x)
+    
+            if not isinstance(x.type, TensorType):
+                raise AsTensorError(
+                    "Variable type field must be a TensorType.", x, x.type)
+    
+            if ndim is None:
+                return x
+            else:
+                if (x.type.ndim > ndim):
+                    # strip off leading broadcastable dimensions
+                    first_non_broadcastable = [idx for idx in xrange(x.ndim)
+                                               if not x.broadcastable[idx]][0]
+                    x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
+                    if x.ndim > ndim:
+                        raise ValueError(
+                            'TensorType could not be cast to have %i dimensions'
+                            % ndim, x.type
+                        )
+                    return x
+                elif (x.type.ndim < ndim):
+                    return shape_padleft(x, n_ones=(ndim - x.type.ndim))
+                else:
+                    return x
+        if isinstance(x, (tuple, list)) and python_any(isinstance(xi, Variable)
+                                                       for xi in x):
+            try:
+                return stack(x)
+            except (TypeError, ValueError):
+                pass
+    
+        if isinstance(x, bool):
+            raise AsTensorError(
+                "Cannot cast True or False as a tensor variable. Please use 1 or "
+                "0. This error might be caused by using the == operator on "
+                "Variables. v == w does not do what you think it does, "
+                "use theano.tensor.eq(v, w) instead.")
+    
+        try:
+>           return constant(x, name=name, ndim=ndim)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 3), name = None, ndim = None, dtype = None
+
+    def constant(x, name=None, ndim=None, dtype=None):
+        ret = constant_or_value(x, rtype=TensorConstant, name=name, ndim=ndim,
+>                               dtype=dtype)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:264: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 3), rtype = <class 'theano.tensor.var.TensorConstant'>
+name = None, ndim = None, dtype = None
+
+    def constant_or_value(x, rtype, name=None, ndim=None, dtype=None):
+        """Return a symbolic `Constant` with value `x`.
+    
+        Raises
+        ------
+        TypeError
+            `x` could not be converted to a numpy.ndarray.
+        ValueError
+            `x` could not be expanded to have ndim dimensions.
+    
+        """
+        x_ = scal.convert(x, dtype=dtype)
+    
+        bcastable = [d == 1 for d in x_.shape]
+        if ndim is not None:
+            if len(bcastable) < ndim:
+                bcastable = [True] * (ndim - len(bcastable)) + bcastable
+            elif len(bcastable) > ndim:
+                # TODO: strip off dimensions of size 1
+                raise ValueError(
+                    'ndarray could not be cast to constant with %i dimensions' %
+                    ndim)
+            assert len(bcastable) == ndim
+    
+        try:
+            if rtype is TensorConstant:
+                rval = rtype(
+                    TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                    x_.copy(),
+                    name=name)
+                return rval
+            else:
+                # leave the shape out of the type
+                return rtype(TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                             x_, name=name)
+        except Exception:
+>           raise TypeError("Could not convert %s to TensorType" % x, type(x))
+E           TypeError: not all arguments converted during string formatting
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:259: TypeError
+
+During handling of the above exception, another exception occurred:
+
+    def test_ErasureWrapper():
+        for i in range(1,4):
+            model = Sequential()
+            model.add(ErasureWrapper(GRU(output_dim = output_dim, \
+                    return_sequences = False, return_all_states = False), input_shape = (None, embedding_dim), ngram = i))
+            model.add(TimeDistributed(Dense(num_classes, activation = "exp")))
+            model.compile(optimizer='sgd', loss='mse')
+            out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+            assert(out.shape == (nb_samples, timesteps - i + 1, num_classes))
+    
+        # with return_sequences = True
+        for i in range(1,4):
+            model = Sequential()
+            model.add(ErasureWrapper(GRU(output_dim = output_dim, \
+                    return_sequences = True, return_all_states = False), input_shape = (None, embedding_dim), ngram = i))
+>           model.add(TimeDistributed(TimeDistributed(Dense(num_classes, activation = "exp"))))
+
+test_decomposition.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/models.py:334: in add
+    output_tensor = layer(self.outputs[0])
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:578: in __call__
+    self.add_inbound_node(inbound_layers, node_indices, tensor_indices)
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:641: in add_inbound_node
+    Node.create_node(self, inbound_layers, node_indices, tensor_indices)
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:166: in create_node
+    output_tensors = to_list(outbound_layer.call(input_tensors[0], mask=input_masks[0]))
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/wrappers.py:176: in call
+    inputs = K.reshape(inputs, (-1,) + input_shape[2:])
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/backend/theano_backend.py:636: in reshape
+    y = T.reshape(x, shape)
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:4895: in reshape
+    newshape = as_tensor_variable(newshape)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 3), name = None, ndim = None
+
+    def as_tensor_variable(x, name=None, ndim=None):
+        """Return `x`, transformed into a `TensorType`.
+    
+        This function is often used by `make_node` methods of `Op` subclasses
+        to turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
+        `TensorType` instances into valid input list elements.
+    
+        Parameters
+        ----------
+        x : Apply instance, Variable instance, numpy.ndarray, or number
+            This thing will be transformed into a `Variable` in a sensible way. An
+            ndarray argument will not be copied, but a list of numbers will be
+            copied to make an ndarray.
+        name : str or None
+            If a new `Variable` instance is created, it will be named with this
+            string.
+        ndim : None or integer
+            Return a Variable with this many dimensions.
+    
+        Raises
+        ------
+        ValueError
+            If an `Apply` with more than one output is fetched or
+            if `x` cannot be made into a Variable with `ndim` dimensions.
+        AsTensorError
+            If `x` cannot be converted to a TensorType Variable.
+    
+        """
+        if hasattr(x, '_as_TensorVariable'):
+            return x._as_TensorVariable()  # TODO: pass name and ndim arguments
+    
+        if isinstance(x, gof.Apply):
+            # use Apply's default output mechanism
+            if (x.op.default_output is None) and (len(x.outputs) != 1):
+                raise ValueError(
+                    "It is ambiguous which output of a multi-output Op has"
+                    " to be fetched.", x)
+    
+            x = x.default_output()
+        if isinstance(x, Variable):
+            if isinstance(x.type, scal.Scalar):
+                x = tensor_from_scalar(x)
+    
+            if not isinstance(x.type, TensorType):
+                raise AsTensorError(
+                    "Variable type field must be a TensorType.", x, x.type)
+    
+            if ndim is None:
+                return x
+            else:
+                if (x.type.ndim > ndim):
+                    # strip off leading broadcastable dimensions
+                    first_non_broadcastable = [idx for idx in xrange(x.ndim)
+                                               if not x.broadcastable[idx]][0]
+                    x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
+                    if x.ndim > ndim:
+                        raise ValueError(
+                            'TensorType could not be cast to have %i dimensions'
+                            % ndim, x.type
+                        )
+                    return x
+                elif (x.type.ndim < ndim):
+                    return shape_padleft(x, n_ones=(ndim - x.type.ndim))
+                else:
+                    return x
+        if isinstance(x, (tuple, list)) and python_any(isinstance(xi, Variable)
+                                                       for xi in x):
+            try:
+                return stack(x)
+            except (TypeError, ValueError):
+                pass
+    
+        if isinstance(x, bool):
+            raise AsTensorError(
+                "Cannot cast True or False as a tensor variable. Please use 1 or "
+                "0. This error might be caused by using the == operator on "
+                "Variables. v == w does not do what you think it does, "
+                "use theano.tensor.eq(v, w) instead.")
+    
+        try:
+            return constant(x, name=name, ndim=ndim)
+        except TypeError:
+            try:
+                str_x = str(x)
+            except Exception:
+                str_x = repr(x)
+>           raise AsTensorError("Cannot convert %s to TensorType" % str_x, type(x))
+E           theano.tensor.var.AsTensorError: ('Cannot convert (-1, None, 3) to TensorType', <class 'tuple'>)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:212: AsTensorError
+----------------------------- Captured stderr call -----------------------------
+DEPRECATION WARNING: softsign was moved from theano.sandbox.softsign to theano.tensor.nnet.nnet 
+______________________________ test_bidirectional ______________________________
+[gw1] linux -- Python 3.5.2 /usr/bin/python3
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f7463858be0>
+
+    def dtype_specs(self):
+        """
+            Return a tuple (python type, c type, numpy typenum) that corresponds
+            to self.dtype.
+    
+            This function is used internally as part of C code generation.
+    
+            """
+        # TODO: add more type correspondances for e.g. int32, int64, float32,
+        # complex64, etc.
+        try:
+            return {
+                'float16': (float, 'npy_float16', 'NPY_FLOAT16'),
+                'float32': (float, 'npy_float32', 'NPY_FLOAT32'),
+                'float64': (float, 'npy_float64', 'NPY_FLOAT64'),
+                'bool': (bool, 'npy_bool', 'NPY_BOOL'),
+                'uint8': (int, 'npy_uint8', 'NPY_UINT8'),
+                'int8': (int, 'npy_int8', 'NPY_INT8'),
+                'uint16': (int, 'npy_uint16', 'NPY_UINT16'),
+                'int16': (int, 'npy_int16', 'NPY_INT16'),
+                'uint32': (int, 'npy_uint32', 'NPY_UINT32'),
+                'int32': (int, 'npy_int32', 'NPY_INT32'),
+                'uint64': (int, 'npy_uint64', 'NPY_UINT64'),
+                'int64': (int, 'npy_int64', 'NPY_INT64'),
+                'complex128': (complex, 'theano_complex128', 'NPY_COMPLEX128'),
+                'complex64': (complex, 'theano_complex64', 'NPY_COMPLEX64')
+>           }[self.dtype]
+E           KeyError: 'object'
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:270: KeyError
+
+During handling of the above exception, another exception occurred:
+
+x = (-1, None, 6), rtype = <class 'theano.tensor.var.TensorConstant'>
+name = None, ndim = None, dtype = None
+
+    def constant_or_value(x, rtype, name=None, ndim=None, dtype=None):
+        """Return a symbolic `Constant` with value `x`.
+    
+        Raises
+        ------
+        TypeError
+            `x` could not be converted to a numpy.ndarray.
+        ValueError
+            `x` could not be expanded to have ndim dimensions.
+    
+        """
+        x_ = scal.convert(x, dtype=dtype)
+    
+        bcastable = [d == 1 for d in x_.shape]
+        if ndim is not None:
+            if len(bcastable) < ndim:
+                bcastable = [True] * (ndim - len(bcastable)) + bcastable
+            elif len(bcastable) > ndim:
+                # TODO: strip off dimensions of size 1
+                raise ValueError(
+                    'ndarray could not be cast to constant with %i dimensions' %
+                    ndim)
+            assert len(bcastable) == ndim
+    
+        try:
+            if rtype is TensorConstant:
+                rval = rtype(
+>                   TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                    x_.copy(),
+                    name=name)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:250: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f7463858be0>
+dtype = dtype('O'), broadcastable = [False], name = None, sparse_grad = False
+
+    def __init__(self, dtype, broadcastable, name=None, sparse_grad=False):
+        self.dtype = str(dtype)
+        if self.dtype == 'floatX':
+            self.dtype = config.floatX
+        # broadcastable is immutable, and all elements are either
+        # True or False
+        self.broadcastable = tuple(bool(b) for b in broadcastable)
+>       self.dtype_specs()  # error checking is done there
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <[AttributeError("'TensorType' object has no attribute 'name'") raised in repr()] TensorType object at 0x7f7463858be0>
+
+    def dtype_specs(self):
+        """
+            Return a tuple (python type, c type, numpy typenum) that corresponds
+            to self.dtype.
+    
+            This function is used internally as part of C code generation.
+    
+            """
+        # TODO: add more type correspondances for e.g. int32, int64, float32,
+        # complex64, etc.
+        try:
+            return {
+                'float16': (float, 'npy_float16', 'NPY_FLOAT16'),
+                'float32': (float, 'npy_float32', 'NPY_FLOAT32'),
+                'float64': (float, 'npy_float64', 'NPY_FLOAT64'),
+                'bool': (bool, 'npy_bool', 'NPY_BOOL'),
+                'uint8': (int, 'npy_uint8', 'NPY_UINT8'),
+                'int8': (int, 'npy_int8', 'NPY_INT8'),
+                'uint16': (int, 'npy_uint16', 'NPY_UINT16'),
+                'int16': (int, 'npy_int16', 'NPY_INT16'),
+                'uint32': (int, 'npy_uint32', 'NPY_UINT32'),
+                'int32': (int, 'npy_int32', 'NPY_INT32'),
+                'uint64': (int, 'npy_uint64', 'NPY_UINT64'),
+                'int64': (int, 'npy_int64', 'NPY_INT64'),
+                'complex128': (complex, 'theano_complex128', 'NPY_COMPLEX128'),
+                'complex64': (complex, 'theano_complex64', 'NPY_COMPLEX64')
+            }[self.dtype]
+        except KeyError:
+            raise TypeError("Unsupported dtype for %s: %s"
+>                           % (self.__class__.__name__, self.dtype))
+E           TypeError: Unsupported dtype for TensorType: object
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/type.py:273: TypeError
+
+During handling of the above exception, another exception occurred:
+
+x = (-1, None, 6), name = None, ndim = None
+
+    def as_tensor_variable(x, name=None, ndim=None):
+        """Return `x`, transformed into a `TensorType`.
+    
+        This function is often used by `make_node` methods of `Op` subclasses
+        to turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
+        `TensorType` instances into valid input list elements.
+    
+        Parameters
+        ----------
+        x : Apply instance, Variable instance, numpy.ndarray, or number
+            This thing will be transformed into a `Variable` in a sensible way. An
+            ndarray argument will not be copied, but a list of numbers will be
+            copied to make an ndarray.
+        name : str or None
+            If a new `Variable` instance is created, it will be named with this
+            string.
+        ndim : None or integer
+            Return a Variable with this many dimensions.
+    
+        Raises
+        ------
+        ValueError
+            If an `Apply` with more than one output is fetched or
+            if `x` cannot be made into a Variable with `ndim` dimensions.
+        AsTensorError
+            If `x` cannot be converted to a TensorType Variable.
+    
+        """
+        if hasattr(x, '_as_TensorVariable'):
+            return x._as_TensorVariable()  # TODO: pass name and ndim arguments
+    
+        if isinstance(x, gof.Apply):
+            # use Apply's default output mechanism
+            if (x.op.default_output is None) and (len(x.outputs) != 1):
+                raise ValueError(
+                    "It is ambiguous which output of a multi-output Op has"
+                    " to be fetched.", x)
+    
+            x = x.default_output()
+        if isinstance(x, Variable):
+            if isinstance(x.type, scal.Scalar):
+                x = tensor_from_scalar(x)
+    
+            if not isinstance(x.type, TensorType):
+                raise AsTensorError(
+                    "Variable type field must be a TensorType.", x, x.type)
+    
+            if ndim is None:
+                return x
+            else:
+                if (x.type.ndim > ndim):
+                    # strip off leading broadcastable dimensions
+                    first_non_broadcastable = [idx for idx in xrange(x.ndim)
+                                               if not x.broadcastable[idx]][0]
+                    x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
+                    if x.ndim > ndim:
+                        raise ValueError(
+                            'TensorType could not be cast to have %i dimensions'
+                            % ndim, x.type
+                        )
+                    return x
+                elif (x.type.ndim < ndim):
+                    return shape_padleft(x, n_ones=(ndim - x.type.ndim))
+                else:
+                    return x
+        if isinstance(x, (tuple, list)) and python_any(isinstance(xi, Variable)
+                                                       for xi in x):
+            try:
+                return stack(x)
+            except (TypeError, ValueError):
+                pass
+    
+        if isinstance(x, bool):
+            raise AsTensorError(
+                "Cannot cast True or False as a tensor variable. Please use 1 or "
+                "0. This error might be caused by using the == operator on "
+                "Variables. v == w does not do what you think it does, "
+                "use theano.tensor.eq(v, w) instead.")
+    
+        try:
+>           return constant(x, name=name, ndim=ndim)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 6), name = None, ndim = None, dtype = None
+
+    def constant(x, name=None, ndim=None, dtype=None):
+        ret = constant_or_value(x, rtype=TensorConstant, name=name, ndim=ndim,
+>                               dtype=dtype)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:264: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 6), rtype = <class 'theano.tensor.var.TensorConstant'>
+name = None, ndim = None, dtype = None
+
+    def constant_or_value(x, rtype, name=None, ndim=None, dtype=None):
+        """Return a symbolic `Constant` with value `x`.
+    
+        Raises
+        ------
+        TypeError
+            `x` could not be converted to a numpy.ndarray.
+        ValueError
+            `x` could not be expanded to have ndim dimensions.
+    
+        """
+        x_ = scal.convert(x, dtype=dtype)
+    
+        bcastable = [d == 1 for d in x_.shape]
+        if ndim is not None:
+            if len(bcastable) < ndim:
+                bcastable = [True] * (ndim - len(bcastable)) + bcastable
+            elif len(bcastable) > ndim:
+                # TODO: strip off dimensions of size 1
+                raise ValueError(
+                    'ndarray could not be cast to constant with %i dimensions' %
+                    ndim)
+            assert len(bcastable) == ndim
+    
+        try:
+            if rtype is TensorConstant:
+                rval = rtype(
+                    TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                    x_.copy(),
+                    name=name)
+                return rval
+            else:
+                # leave the shape out of the type
+                return rtype(TensorType(dtype=x_.dtype, broadcastable=bcastable),
+                             x_, name=name)
+        except Exception:
+>           raise TypeError("Could not convert %s to TensorType" % x, type(x))
+E           TypeError: not all arguments converted during string formatting
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:259: TypeError
+
+During handling of the above exception, another exception occurred:
+
+    def test_bidirectional():
+        for layer in (GammaLayerGRU, BetaLayerGRU):
+            for i in range(1,4):
+                model = Sequential()
+                model.add(Bidirectional(GRU(output_dim = output_dim, return_sequences = True, return_all_states = True),
+                    input_shape = (None, embedding_dim), merge_mode = "concat"))
+                model.add(Bidirectional(layer(ngram=i), input_mode = "split", merge_mode = "concat"))
+                model.add(TimeDistributed(Dense(output_dim = num_classes, activation = "exp")))
+                model.compile("sgd", "mse")
+                out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+                assert out.shape == (nb_samples, timesteps - i + 1, num_classes)
+    
+            for i in range(1,4):
+                model = Sequential()
+                model.add(Bidirectional(GRU(output_dim = output_dim, return_sequences = True, return_all_states = True),
+                    input_shape = (None, embedding_dim), merge_mode = "concat"))
+                model.add(Bidirectional(layer(ngram=i, return_sequences = True),
+                    input_mode = "split", merge_mode = "concat"))
+>               model.add(TimeDistributed(Dense(output_dim = num_classes, activation = "exp")))
+
+test_decomposition.py:128: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/models.py:334: in add
+    output_tensor = layer(self.outputs[0])
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:578: in __call__
+    self.add_inbound_node(inbound_layers, node_indices, tensor_indices)
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:641: in add_inbound_node
+    Node.create_node(self, inbound_layers, node_indices, tensor_indices)
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/engine/topology.py:166: in create_node
+    output_tensors = to_list(outbound_layer.call(input_tensors[0], mask=input_masks[0]))
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/layers/wrappers.py:176: in call
+    inputs = K.reshape(inputs, (-1,) + input_shape[2:])
+/usr/local/lib/python3.5/dist-packages/Keras-1.2.3-py3.5.egg/keras/backend/theano_backend.py:636: in reshape
+    y = T.reshape(x, shape)
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:4895: in reshape
+    newshape = as_tensor_variable(newshape)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = (-1, None, 6), name = None, ndim = None
+
+    def as_tensor_variable(x, name=None, ndim=None):
+        """Return `x`, transformed into a `TensorType`.
+    
+        This function is often used by `make_node` methods of `Op` subclasses
+        to turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
+        `TensorType` instances into valid input list elements.
+    
+        Parameters
+        ----------
+        x : Apply instance, Variable instance, numpy.ndarray, or number
+            This thing will be transformed into a `Variable` in a sensible way. An
+            ndarray argument will not be copied, but a list of numbers will be
+            copied to make an ndarray.
+        name : str or None
+            If a new `Variable` instance is created, it will be named with this
+            string.
+        ndim : None or integer
+            Return a Variable with this many dimensions.
+    
+        Raises
+        ------
+        ValueError
+            If an `Apply` with more than one output is fetched or
+            if `x` cannot be made into a Variable with `ndim` dimensions.
+        AsTensorError
+            If `x` cannot be converted to a TensorType Variable.
+    
+        """
+        if hasattr(x, '_as_TensorVariable'):
+            return x._as_TensorVariable()  # TODO: pass name and ndim arguments
+    
+        if isinstance(x, gof.Apply):
+            # use Apply's default output mechanism
+            if (x.op.default_output is None) and (len(x.outputs) != 1):
+                raise ValueError(
+                    "It is ambiguous which output of a multi-output Op has"
+                    " to be fetched.", x)
+    
+            x = x.default_output()
+        if isinstance(x, Variable):
+            if isinstance(x.type, scal.Scalar):
+                x = tensor_from_scalar(x)
+    
+            if not isinstance(x.type, TensorType):
+                raise AsTensorError(
+                    "Variable type field must be a TensorType.", x, x.type)
+    
+            if ndim is None:
+                return x
+            else:
+                if (x.type.ndim > ndim):
+                    # strip off leading broadcastable dimensions
+                    first_non_broadcastable = [idx for idx in xrange(x.ndim)
+                                               if not x.broadcastable[idx]][0]
+                    x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
+                    if x.ndim > ndim:
+                        raise ValueError(
+                            'TensorType could not be cast to have %i dimensions'
+                            % ndim, x.type
+                        )
+                    return x
+                elif (x.type.ndim < ndim):
+                    return shape_padleft(x, n_ones=(ndim - x.type.ndim))
+                else:
+                    return x
+        if isinstance(x, (tuple, list)) and python_any(isinstance(xi, Variable)
+                                                       for xi in x):
+            try:
+                return stack(x)
+            except (TypeError, ValueError):
+                pass
+    
+        if isinstance(x, bool):
+            raise AsTensorError(
+                "Cannot cast True or False as a tensor variable. Please use 1 or "
+                "0. This error might be caused by using the == operator on "
+                "Variables. v == w does not do what you think it does, "
+                "use theano.tensor.eq(v, w) instead.")
+    
+        try:
+            return constant(x, name=name, ndim=ndim)
+        except TypeError:
+            try:
+                str_x = str(x)
+            except Exception:
+                str_x = repr(x)
+>           raise AsTensorError("Cannot convert %s to TensorType" % str_x, type(x))
+E           theano.tensor.var.AsTensorError: ('Cannot convert (-1, None, 6) to TensorType', <class 'tuple'>)
+
+/usr/local/lib/python3.5/dist-packages/theano/tensor/basic.py:212: AsTensorError
+_________________ test_unit_tests_Decomposition_bidirectional __________________
+[gw0] linux -- Python 3.5.2 /usr/bin/python3
+def test_unit_tests_Decomposition_bidirectional():
+    
+        x1 = np.array([1,2,1])
+        x2 = np.array([0,1,1])
+        x3 = np.array([1,1,1])
+    
+        X = np.stack([x1,x2,x3])
+        X = np.stack([X])
+    
+        Wout = np.array([[2,0,0],[0,1,1],[6,7,8],[4,5,3]])
+        bout = np.zeros((3,))
+    
+    
+        # Forward
+        h0 = np.array([0,0])
+        c0 = np.array([0,0])
+    
+        Wif = np.array([[0,0], [0,1], [0,1]])
+        Uif = np.array([[0,1], [1,0]])
+    
+        Wff = np.array([[2,0], [0,2], [0,1]])
+        Uff = np.array([[0,2], [1,2]])
+    
+        Wof = np.array([[1,0], [0,0], [0,1]])
+        Uof = np.array([[0,2], [1,1]])
+    
+        Wcf = np.array([[1,3], [0,0], [0,1]])
+        Ucf = np.array([[0,1], [1,1]])
+    
+        i1f = sigmoid(np.dot(x1, Wif) + np.dot(h0, Uif))
+        f1f = sigmoid(np.dot(x1, Wff) + np.dot(h0, Uff))
+        o1f = sigmoid(np.dot(x1, Wof) + np.dot(h0, Uof))
+        h_tilde1f = np.tanh(np.dot(x1, Wcf) + np.dot(h0, Ucf))
+    
+        c1f = f1f * c0 + i1f * h_tilde1f
+        h1f = o1f * np.tanh(c1f)
+    
+        i2f = sigmoid(np.dot(x2, Wif) + np.dot(h1f, Uif))
+        f2f = sigmoid(np.dot(x2, Wff) + np.dot(h1f, Uff))
+        o2f = sigmoid(np.dot(x2, Wof) + np.dot(h1f, Uof))
+        h_tilde2f = np.tanh(np.dot(x2, Wcf) + np.dot(h1f, Ucf))
+    
+        c2f = f2f * c1f + i2f * h_tilde2f
+        h2f = o2f * np.tanh(c2f)
+    
+        i3f = sigmoid(np.dot(x3, Wif) + np.dot(h2f, Uif))
+        f3f = sigmoid(np.dot(x3, Wff) + np.dot(h2f, Uff))
+        o3f = sigmoid(np.dot(x3, Wof) + np.dot(h2f, Uof))
+        h_tilde3f = np.tanh(np.dot(x3, Wcf) + np.dot(h2f, Ucf))
+    
+        c3f = f3f * c2f + i3f * h_tilde3f
+        h3f = o3f * np.tanh(c3f)
+    
+        bi = np.zeros((2,))
+        bc = np.zeros((2,))
+        bf = np.zeros((2,))
+        bo = np.zeros((2,))
+    
+        Wf = [Wif, Uif, bi, Wcf, Ucf, bc, Wff, Uff, bf, Wof, Uof, bo]
+    
+        # Backward
+        h4 = np.array([0,0])
+        c4 = np.array([0,0])
+    
+        Wib = np.array([[0,0], [0,1], [0,1]])
+        Uib = np.array([[0,1], [4,0]])
+    
+        Wfb = np.array([[2,0], [5,2], [0,1]])
+        Ufb = np.array([[0,2], [1,2]])
+    
+        Wob = np.array([[1,0], [0,6], [0,1]])
+        Uob = np.array([[0,2], [1,1]])
+    
+        Wcb = np.array([[1,3], [0,0], [0,3]])
+        Ucb = np.array([[0,1], [1,1]])
+    
+        i3b = sigmoid(np.dot(x3, Wib) + np.dot(h4, Uib))
+        f3b = sigmoid(np.dot(x3, Wfb) + np.dot(h4, Ufb))
+        o3b = sigmoid(np.dot(x3, Wob) + np.dot(h4, Uob))
+        h_tilde3b = np.tanh(np.dot(x3, Wcb) + np.dot(h4, Ucb))
+    
+        c3b = f3b * c4 + i3b * h_tilde3b
+        h3b = o3b * np.tanh(c3b)
+    
+        i2b = sigmoid(np.dot(x2, Wib) + np.dot(h3b, Uib))
+        f2b = sigmoid(np.dot(x2, Wfb) + np.dot(h3b, Ufb))
+        o2b = sigmoid(np.dot(x2, Wob) + np.dot(h3b, Uob))
+        h_tilde2b = np.tanh(np.dot(x2, Wcb) + np.dot(h3b, Ucb))
+    
+        c2b = f2b * c3b + i2b * h_tilde2b
+        h2b = o2b * np.tanh(c2b)
+    
+        i1b = sigmoid(np.dot(x1, Wib) + np.dot(h2b, Uib))
+        f1b = sigmoid(np.dot(x1, Wfb) + np.dot(h2b, Ufb))
+        o1b = sigmoid(np.dot(x1, Wob) + np.dot(h2b, Uob))
+        h_tilde1b = np.tanh(np.dot(x1, Wcb) + np.dot(h2b, Ucb))
+    
+        c1b = f1b * c2b + i1b * h_tilde1b
+        h1b = o1b * np.tanh(c1b)
+    
+        bi = np.zeros((2,))
+        bc = np.zeros((2,))
+        bf = np.zeros((2,))
+        bo = np.zeros((2,))
+    
+        Wb = [Wib, Uib, bi, Wcb, Ucb, bc, Wfb, Ufb, bf, Wob, Uob, bo]
+    
+        inp = Input(shape=(3,3))
+    
+        LSTM_bidir = Bidirectional(LSTM(input_shape= (None, 3), output_dim = 2,
+            return_sequences = True, return_all_states = True, activation = "tanh",
+            inner_activation = "sigmoid"), weights = Wf + Wb, merge_mode = "concat")(inp)
+    
+        beta_bidir = Bidirectional(BetaLayerLSTM(), input_mode = "split", merge_mode = "concat")(LSTM_bidir)
+    
+        outp = TimeDistributed(Dense(output_dim = 3, weights = [Wout, bout], activation = "exp"))(beta_bidir)
+        m = Model([inp], [outp])
+        m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
+        pred = m.predict(X)[0]
+    
+        beta1 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c1f) - np.tanh(c0)), o1b * (np.tanh(c1b) - np.tanh(c2b))]), Wout))
+        beta2 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c2f) - np.tanh(c1f)), o1b * (np.tanh(c2b) - np.tanh(c3b))]), Wout))
+        beta3 = np.exp(np.dot(np.concatenate([o3f * (np.tanh(c3f) - np.tanh(c2f)), o1b * (np.tanh(c3b) - np.tanh(c4))]), Wout))
+    
+>       assert(np.allclose(pred, np.array([beta1, beta2, beta3])))
+E       assert False
+E        +  where False = <function allclose at 0x7f9c95896510>(array([[  4.59378174e+03,   2.48304336e+04,   6.47974121e+03],\n       [  4.45723534e-01,   3.50308776e-01,   3.33548814e-01],\n       [  1.48683891e-01,   5.39175235e-02,   6.73520863e-02]], dtype=float32), array([[   6.95692326,    9.30150938,   10.20754252],\n       [  23.96620801,   40.24107246,   34.80969923],\n       [ 200.113036  ,  330.36290624,  110.44107469]]))
+E        +    where <function allclose at 0x7f9c95896510> = np.allclose
+E        +    and   array([[   6.95692326,    9.30150938,   10.20754252],\n       [  23.96620801,   40.24107246,   34.80969923],\n       [ 200.113036  ,  330.36290624,  110.44107469]]) = <built-in function array>([array([  6.95692326,   9.30150938,  10.20754252]), array([ 23.96620801,  40.24107246,  34.80969923]), array([ 200.113036  ,  330.36290624,  110.44107469])])
+E        +      where <built-in function array> = np.array
+
+test_decomposition.py:735: AssertionError
+===================== 4 failed, 4 passed in 35.52 seconds ======================
