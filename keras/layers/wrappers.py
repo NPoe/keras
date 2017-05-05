@@ -144,9 +144,10 @@ class TimeDistributed(Wrapper):
         layer: a layer instance.
     """
 
-    def __init__(self, layer, **kwargs):
+    def __init__(self, layer, implementation = 0, **kwargs):
         super(TimeDistributed, self).__init__(layer, **kwargs)
         self.supports_masking = True
+        self.implementation = implementation
 
     def build(self, input_shape):
         super(TimeDistributed, self).build()
@@ -166,11 +167,25 @@ class TimeDistributed(Wrapper):
 
 
     def call(self, inputs, mask=None):
-        def step(x, _):
-            output = self.layer.call(x)
-            return output, []
+        
+        if self.implementation == 1:
+        
+            def step(x, _):
+                output = self.layer.call(x)
+                return output, []
 
-        _, y, _, _ = K.rnn(step, inputs, initial_states=[])
+            _, y, _, _ = K.rnn(step, inputs, initial_states=[])
+
+        else:
+            input_length = input_shape[1]
+            if not input_length:
+                input_length = K.shape(inputs)[1]
+                # Shape: (num_samples * timesteps, ...)
+                inputs = K.reshape(inputs, (-1,) + input_shape[2:])
+                y = self.layer.call(inputs)  # (num_samples * timesteps, ...)
+                # Shape: (num_samples, timesteps, ...)
+                output_shape = self.compute_output_shape(input_shape)
+                y = K.reshape(y, (-1, input_length) + output_shape[2:])
         
         # Apply activity regularizer if any:
         if (hasattr(self.layer, 'activity_regularizer') and
