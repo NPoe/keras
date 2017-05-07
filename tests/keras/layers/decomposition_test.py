@@ -31,13 +31,13 @@ def test_ErasureWrapper():
         assert(out.shape == (nb_samples, timesteps - i + 1, num_classes))
     
     # with return_sequences = True
-#    for i in range(1,4):
-#        model = Sequential()
-#        model.add(ErasureWrapper(GRU(units = units, return_sequences = True), input_shape = (None, embedding_dim), ngram = i))
-#        model.add(TimeDistributed(TimeDistributed(Dense(num_classes, activation = "exp"), implementation = 1), implementation = 1))
-#        model.compile(optimizer='sgd', loss='mse')
-#        out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
-#        assert(out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes))
+    for i in range(1,4):
+        model = Sequential()
+        model.add(ErasureWrapper(GRU(units = units, return_sequences = True), input_shape = (None, embedding_dim), ngram = i))
+        model.add(TimeDistributed(TimeDistributed(Dense(num_classes, activation = "exp"))))
+        model.compile(optimizer='sgd', loss='mse')
+        out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+        assert(out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes))
 
 def test_BetaLayer():
     for i in range(1,4):
@@ -59,17 +59,17 @@ def test_GammaLayer():
             out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
             assert(out.shape == (nb_samples, timesteps - i + 1, num_classes))
 
-#def test_return_sequences():
-#    for i in range(1,4):
-#        for outer_layer in (BetaDecomposition, GammaDecomposition):
-#            for inner_layer in (LSTM, GRU):
-#                model = Sequential()
-#                model.add(outer_layer(inner_layer(units = units, return_sequences = True), ngram = i, input_shape=(None, embedding_dim)))
-#                model.add(TimeDistributed(TimeDistributed(Dense(units = num_classes, activation = "exp"), implementation = 1), implementation = 1))
-#    
-#                model.compile(optimizer='sgd', loss='mse')
-#                out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
-#                assert(out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes))
+def test_return_sequences():
+    for i in range(1,4):
+        for outer_layer in (BetaDecomposition, GammaDecomposition):
+            for inner_layer in (LSTM, GRU):
+                model = Sequential()
+                model.add(outer_layer(inner_layer(units = units, return_sequences = True), ngram = i, input_shape=(None, embedding_dim)))
+                model.add(TimeDistributed(TimeDistributed(Dense(units = num_classes, activation = "exp"))))
+    
+                model.compile(optimizer='sgd', loss='mse')
+                out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+                assert(out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes))
 
 
 def test_bidirectional():
@@ -143,21 +143,6 @@ def test_unit_tests_DecompositionLSTM():
     bo = np.zeros((2,))
 
     W = [np.concatenate([Wi, Wf, Wc, Wo], -1), np.concatenate([Ui, Uf, Uc, Uo], -1), np.concatenate([bi, bf, bc, bo], -1)]
-
-    #inp = Input((None, 3))
-    #lstm = LSTM(units = 2, weights = W, recurrent_activation = "sigmoid", activation = "tanh", \
-    #        return_sequences = True, return_all_states = True)(inp)
-    #m = Model([inp], lstm)
-    #m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
-    #pred = m.predict(X)[0]
-
-    #assert np.allclose(np.array([h1, h2, h3]), pred[0])
-    #assert np.allclose(np.array([c1, c2, c3]), pred[1])
-    #assert np.allclose(np.array([i1, i2, i3]), pred[2])
-    #assert np.allclose(np.array([f1, f2, f3]), pred[3])
-    #assert np.allclose(np.array([o1, o2, o3]), pred[4])
-    #assert np.allclose(np.array([h_tilde1, h_tilde2, h_tilde3]), pred[5])
-    
 
     beta1 = np.exp(np.dot(o3 * (np.tanh(c1) - np.tanh(c0)), Wout))
     beta2 = np.exp(np.dot(o3 * (np.tanh(c2) - np.tanh(c1)), Wout))
@@ -281,19 +266,6 @@ def test_unit_tests_DecompositionGRU():
     bh = np.zeros((2,))
 
     W = [np.concatenate([Wz, Wr, Wh], -1), np.concatenate([Uz, Ur, Uh], -1), np.concatenate([bz, br, bh], -1)]
-
-    #inp = Input((None,3))
-    #gru = GRU(units = 2, weights = W, recurrent_activation = "sigmoid", activation = "tanh", \
-    #        return_sequences = True, return_all_states = True)(inp)
-    #m = Model([inp], gru)
-    #m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
-    #pred = m.predict(X)[0]
-
-    #assert np.allclose(np.array([h1, h2, h3]), pred[0])
-    #assert np.allclose(np.array([z1, z2, z3]), pred[1])
-    #assert np.allclose(np.array([r1, r2, r3]), pred[2])
-    #assert np.allclose(np.array([h_tilde1, h_tilde2, h_tilde3]), pred[3])
-   
 
     delta1 = np.exp(np.dot(h1-h0, Wout))
     delta2 = np.exp(np.dot(h2-h1, Wout))
