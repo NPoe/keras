@@ -405,30 +405,43 @@ class ErasureWrapper(Wrapper):
 		self.built = True
 
 
-	def call(self, x, mask = None):
-		if mask is None:
-			mask = K.ones_like(x[tuple([slice(None), slice(None)] + [0 for _ in range(2, x.ndim)])])
+	def call(self, inputs, mask = None):
+		input_shape = K.int_shape(inputs)
+		input_length = input_shape[1]
+		if not input_length:
+			input_length = K.shape(inputs)[1]
+		ndim = len(input_shape)
+
+		ngram_minus1 = K.variable(self.ngram - 1, dtype='int')
+		orig_score = self.layer.call(inputs, mask = mask)
+
+		if input_shape[1]:
+		    diag = K.variable(sum([np.eye(input_shape[1], k=i) for i in range(self.ngram)]))
+		else:
+		    diag = sum([K.diag_from_vec(inputs[tuple([0] + [slice(None)] + [0] * (ndim - 2))], offset = i) \
+		    	for i in range(self.ngram)]) 
+		    # diag.shape = (timesteps, timesteps)
 		
-		orig_score = self.layer.call(x, mask)
-		mask_stacked = K.square_stack(mask, 1) # samples, timesteps (erasure), timesteps (rnn)
-		
-		diag = K.diag_from_vec(mask[0])
-		for i in range(1, self.ngram):
-			diag = diag + K.diag_from_vec(mask[0], offset = 1)
-			
 		if self.ngram > 1:
-			diag = diag[:(-1)*(self.ngram - 1)] # timesteps(erasure, causer), timesteps(rnn, causee?)
-		diag = K.expand_dims(diag, 0) # 1, timesteps (erasure), timesteps (rnn)
-		mask_stacked = mask_stacked[:,(self.ngram - 1):]
+			diag = diag[:(-1)*(self.ngram - 1)] # diag.shape = (timesteps - ngram + 1, timesteps) (causer, causee)
+
+		diag = K.expand_dims(diag, 0) # 1, causers, timesteps
+		for i in range(2, ndim):
+			diag = K.expand_dims(diag, -1) # add any missing deeper dimensions
 		
-		anti_diag = -1 * (diag - 1) # sqare matrix with 0 on diagonal and 1 elsewhere
-		knock_mask_stacked = mask_stacked*anti_diag # knock out ones on the diagonals (zeros remain zeros in any case)
+		anti_diag = -1 * (diag - 1) # 1 -> 0, 0 -> 1 (zeros on diagonal, 1 elsewhere)
+
+		def step(_anti_diag, _): # _diag.shape = (1, timesteps(rnn), ...)
+			_mask = mask
+			_inputs = inputs * _anti_diag
+			_inputs._keras_shape = input_shape
+			if mask:
+				_mask = mask * _anti_diag[tuple([slice(None)] * 2 + [0] * (ndim - 2))] # knock out the 2D mask
+				_mask._keras_shape = input_shape[:2]
+			return orig_score - self.layer.call(_inputs, mask = _mask), []
 		
-		def step(_mask, _):
-			return orig_score - self.layer.call(x, mask = _mask), []
-		
-		_, outputs, _, _ = K.rnn(step, knock_mask_stacked, initial_states=[]) # samples, causers, ...
-		return outputs
+		_, y, _, _ = K.rnn(step, anti_diag, initial_states=[]) # samples, causers, ...
+		return y
 		
 	def compute_output_shape(self, input_shape):
 		timesteps_causer = input_shape[1]
@@ -457,6 +470,7 @@ class Decomposition(Wrapper):
                 go_backwards = False,
                 stateful = False,
                 return_sequences = True,
+                return_square_sequences = False,
                 **kwargs):
 
             super(Decomposition, self).__init__(layer, **kwargs)
@@ -475,7 +489,8 @@ class Decomposition(Wrapper):
             self.activation = self.layer.activation
             self.stateful = self.layer.stateful
             
-            self.return_square_sequences = self.layer.return_sequences
+            self.return_sequences = True
+            self.return_square_sequences = return_square_sequences
        
 
         def build(self, input_shape):
@@ -497,8 +512,8 @@ class Decomposition(Wrapper):
         
         def get_config(self):
             config = {'layer': {'class_name': self.layer.__class__.__name__, 'config': self.layer.get_config()},
-                    'return_square_sequences': self.return_square_sequences,
                     'return_sequences': self.return_sequences,
+                    'return_square_sequences': self.return_square_sequences,
                     'go_backwards': self.go_backwards,
                     'stateful': self.stateful, 
                     'ngram': self.ngram}
@@ -508,6 +523,8 @@ class Decomposition(Wrapper):
 
         
         def call(self, inputs, mask=None):
+
+            input_shape = K.int_shape(inputs)
             
             _, _, _, states = self.layer._call(inputs, mask = mask)
             
@@ -519,7 +536,7 @@ class Decomposition(Wrapper):
                 cells = states[1] # memory cells
                 forget_gates = states[3] # forget gates
                 out_gates = states[4] # out gates
-           
+            
             if mask is None:
                 mask = K.ones_like(cells[tuple([slice(None), slice(None)] + [0 for _ in range(2, cells.ndim)])]) # (samples, timesteps)
 
@@ -527,10 +544,15 @@ class Decomposition(Wrapper):
                 mask = mask[:,::-1]
 
             if self.return_square_sequences:
-                mask_stacked = K.square_stack(mask, 1) # (samples, causees, causers)
-                cells_stacked = K.square_stack(cells, 1) # (samples, causees, causers, ...)
-
-                mask_stacked *= K.tril_from_vec(mask[0]) # (timesteps, timesteps) lower triangle
+                if input_shape[1]:
+                    mask_stacked = K.stack([mask for _ in range(input_shape[1])], 1) # (samples, causees, causers)
+                    cells_stacked = K.stack([cells for _ in range(input_shape[1])], 1) # (samples, causees, causers, ...) 
+                    tril = K.variable(np.tril(np.ones(input_shape[1]))) # (timesteps, timesteps) lower triangle
+                else:
+                    mask_stacked = K.square_stack(mask, 1) # (samples, causees, causers)
+                    cells_stacked = K.square_stack(cells, 1) # (samples, causees, causers, ...) 
+                    tril = K.tril_from_vec(mask[0]) # (timesteps, timesteps) lower triangle
+                mask_stacked *= K.expand_dims(tril, 0)
             
             else:
                 cells_stacked = K.expand_dims(cells, 1) # (samples, 1, causers, ...)
