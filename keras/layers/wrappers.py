@@ -26,7 +26,7 @@ class Wrapper(Layer):
         self.layer = layer
         if self._initial_weights:
             self.layer._set_initial_weights(self._initial_weights)
-        elif self.layer._get_initial_weights():
+        elif hasattr(self.layer, "_initial_weights") and self.layer._get_initial_weights():
             self._initial_weights = self.layer._get_initial_weights()
 
     def build(self, input_shape=None):
@@ -414,32 +414,61 @@ class ErasureWrapper(Wrapper):
 
 
 	def call(self, inputs, mask = None):
-		input_shape = K.int_shape(inputs)
-		input_length = input_shape[1]
-		if not input_length:
-			input_length = K.shape(inputs)[1]
-		ndim = len(input_shape)
+		int_input_shape = K.int_shape(inputs)
+		tensor_input_shape = K.shape(inputs)
+		lp = inputs._uses_learning_phase
+
+		ndim = len(int_input_shape)
+		
+		input_shape = tuple([int_input_shape[i] if int_input_shape[i] else tensor_input_shape[i] for i in range(ndim)])
 
 		orig_score = self.layer.call(inputs, mask = mask)
 
-		diag = sum([K.eye(rows = input_length - self.ngram + 1, columns = input_length, offset = i) for i in range(self.ngram)])
-		# diag.shape = (causers, timesteps)
+		diag = sum([K.eye(rows = input_shape[1] - self.ngram + 1, columns = input_shape[1], offset = i) \
+			for i in range(self.ngram)])
 		
-		diag = K.expand_dims(diag, 0) # 1, causers, timesteps
-		for i in range(2, ndim):
-			diag = K.expand_dims(diag, -1) # add any missing deeper dimensions
 		anti_diag = (-1) * (diag - 1) # 1 -> 0, 0 -> 1 (zeros on diagonal, 1 elsewhere)
-
-		def step(_anti_diag, _): # _diag.shape = (1, timesteps(rnn), ...)
-			_mask = mask
-			_inputs = inputs * _anti_diag
-			_inputs._keras_shape = input_shape
-			if mask:
-				_mask = mask * _anti_diag[tuple([slice(None)] * 2 + [0] * (ndim - 2))] # knock out the 2D mask
-				_mask._keras_shape = input_shape[:2]
-			return orig_score - self.layer.call(_inputs, mask = _mask), []
 		
-		_, y, _, _ = K.rnn(step, anti_diag, initial_states=[]) # samples, causers, ...
+
+		if int_input_shape[0]:
+			anti_diag = K.expand_dims(anti_diag, 0) # 1, causers, timesteps
+			for i in range(2, ndim):
+				anti_diag = K.expand_dims(anti_diag, -1) # add any missing deeper dimensions
+			
+			def step(_anti_diag, _): # _diag.shape = (1, timesteps(rnn), ...)
+				_mask = mask
+				_inputs = inputs * _anti_diag
+				_inputs._keras_shape = int_input_shape
+				if mask:
+					_mask = mask * _anti_diag[tuple([slice(None)] * 2 + [0] * (ndim - 2))] # knock out the 2D mask
+				return orig_score - self.layer.call(_inputs, mask = _mask), []
+		
+			_, y, _, _ = K.rnn(step, anti_diag, initial_states=[]) # samples, causers, ...
+		else:
+			anti_diag = K.tile(anti_diag, (input_shape[0], 1))
+			if mask:
+				mask = K.repeat_elements(mask, rep = input_shape[1] - self.ngram + 1, axis = 0)
+				mask = mask * anti_diag
+			
+			for i in range(2, ndim):
+				anti_diag = K.expand_dims(anti_diag, -1)
+			
+			orig_score = K.repeat_elements(orig_score, rep = input_shape[1] - self.ngram + 1, axis = 0)
+			inputs = K.repeat_elements(inputs, rep = input_shape[1] - self.ngram + 1, axis = 0)
+			inputs = inputs * anti_diag
+			inputs._keras_shape = (None,) + int_input_shape[1:]
+			inputs._uses_learning_phase = lp
+			
+			y = orig_score - self.layer.call(inputs, mask = mask)
+			
+			int_output_shape = self.compute_output_shape(int_input_shape)
+			tensor_output_shape = K.shape(y)
+			output_shape = (input_shape[0], input_shape[1] - self.ngram + 1) + \
+				tuple([int_output_shape[i] if int_output_shape[i] else tensor_output_shape[i-1] \
+				for i in range(2,len(int_output_shape))])
+
+			y = K.reshape(y, (-1, input_shape[1] - self.ngram + 1) + output_shape[2:])
+
 		return y
 		
 	def compute_output_shape(self, input_shape):

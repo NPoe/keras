@@ -6,7 +6,7 @@ from ..models import Sequential
 from ..layers import Dense
 from ..callbacks import EarlyStopping
 from ..utils.generic_utils import Progbar
-
+from ..regularizers import l1
 
 class Lime:
     def __init__(self, model, **kwargs):
@@ -19,6 +19,7 @@ class Lime:
         l = []
         samples = X.shape[0]
         progbar = Progbar(target = samples, verbose = verbose)
+        self.compile_lime_model(X)
         for i in range(samples):
             l.append(self._lime(X[i]))
             progbar.update(current = i+1)
@@ -32,15 +33,17 @@ class Lime:
 
 class TextLime(Lime):
     def __init__(self, model, 
-        mode = "random", 
-        pad = None, 
-        nb_samples = 500, 
+        mode = "full", 
+        pad = 0, 
+        nb_samples = 10000, 
         minlength = 2, 
         maxlength = 7, 
-        loss = "binary_crossentropy"):
+        loss = "binary_crossentropy",
+	activation = "sigmoid"):
 	
         self.pad = pad
         self.loss = loss
+        self.activation = activation
         self.mode = mode
         self.minlength = minlength
         self.maxlength = maxlength
@@ -52,7 +55,7 @@ class TextLime(Lime):
         assert self.minlength <= self.maxlength
         assert self.minlength > 0
         assert self.maxlength > 0
-        assert self.mode in ("random", "fixed")
+        assert self.mode in ("random", "full")
 	
         super(TextLime, self).__init__(model)
 
@@ -76,6 +79,13 @@ class TextLime(Lime):
         else:
             return x.shape[0]
 
+    def compile_lime_model(self, X):
+        self.lime_model = Sequential()
+        self.lime_model.add(Dense(input_shape=(X.shape[1],), units = 1, activation = self.activation, 
+            use_bias = False, kernel_regularizer = l1()))
+        self.lime_model.compile(loss = self.loss, optimizer = "rmsprop", metrics = ["accuracy"])
+        self.initial_weights = self.lime_model.get_weights()
+
     def _lime(self, x):
         
         assert len(x.shape) == 1
@@ -85,39 +95,36 @@ class TextLime(Lime):
         nb_orig_samples = len(samples)
         
         if self.mode == "random":
-            np.random.shuffle(samples)
-            samples = samples[:min(len(samples), self.nb_samples)]
+            idx = np.random.choice(range(len(samples)), min(len(samples), self.nb_samples), replace = False)
+            samples = [samples[i] for i in idx]
         
-        X_s = np.stack([x[:x_len] for _ in range(len(samples))], axis = 0)
-
-        masks = []
-
-        for start, length in samples:
-            masks.append([0] * start + [1] * length + [0] * (x_len - start - length))
-
-        X_s *= np.array(masks)
-        X_binary = X_s > 0 # 1 everywhere where we have not masked, 0 elsewhere
-
-        p_s = self.model.predict(X_s, verbose = 0)
-
+        masks = np.array([[0] * start + [1] * length + [0] * (x.shape[0] - start - length) for start, length in samples])
+        
+        input_original = []
+	
+        for mask in masks:
+            nonzero = mask.nonzero()[0]
+            relevant = np.concatenate([x[nonzero], np.ones((self.maxlength - len(nonzero),), dtype = 'int') * self.pad])
+            input_original.append(relevant)
+	    
+        scores = self.model.predict(np.array(input_original), verbose = 0)
+        
         weights = []
-
-        MIN_DELTA = {"mse": 0.0001, "binary_crossentropy": 0.001}
 
         for cl in range(self.model.output_shape[-1]):
             if self.loss == "binary_crossentropy":
-                y = p_s.argmax(axis = 1) == cl # 1 for samples where self.model has predicted cl, 0 elsewhere
+                y = scores.argmax(axis = 1) == cl # 1 for samples where self.model has predicted cl, 0 elsewhere
+                delta = 0.0001
             elif self.loss == "mse":
-                y = p_s[:,cl]
+                y = scores[:,cl] # return the raw scores for cl
+                delta = 0.00001
+            
+            self.lime_model.set_weights(self.initial_weights) # reset weights
 
+            self.lime_model.fit(masks, y, verbose = 0, epochs = 10000, shuffle = True, \
+                    callbacks = [EarlyStopping(monitor="loss", min_delta = delta, patience = 10)])
 
-            simple_model = Sequential()
-            simple_model.add(Dense(input_shape = (x_len,), units = 1, activation = "sigmoid", use_bias = False))
-            simple_model.compile(loss = self.loss, optimizer = "rmsprop", metrics = ["accuracy"])
-            simple_model.fit(X_binary, y, verbose = 0, epochs = 2000, \
-                    callbacks = [EarlyStopping(monitor="loss", min_delta = MIN_DELTA[self.loss], patience = 5)])
-
-            weights_cl = simple_model.layers[-1].weights[0].container.storage[0].squeeze()
+            weights_cl = self.lime_model.get_weights()[0].squeeze()[:x_len]
             weights_cl = np.concatenate([weights_cl, np.zeros((x.shape[0] - x_len,))], axis = 0)
             weights.append(weights_cl)
             
