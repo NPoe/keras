@@ -5,9 +5,9 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from keras.utils.test_utils import layer_test
-from keras.layers import recurrent, embeddings, Input
+from keras.layers import recurrent, embeddings, Embedding, Input
 from keras.layers.recurrent import LSTM, GRU
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.layers.core import Masking, Dense
 from keras.layers.wrappers import *
 from keras import regularizers
@@ -31,13 +31,13 @@ def test_ErasureWrapper():
         assert(out.shape == (nb_samples, timesteps - i + 1, num_classes))
     
     # with return_sequences = True
-    for i in range(1,4):
-        model = Sequential()
-        model.add(ErasureWrapper(GRU(units = units, return_sequences = True), input_shape = (None, embedding_dim), ngram = i))
-        model.add(TimeDistributed(TimeDistributed(Dense(num_classes, activation = "exp"))))
-        model.compile(optimizer='sgd', loss='mse')
-        out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
-        assert(out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes))
+#    for i in range(1,4):
+#        model = Sequential()
+#        model.add(ErasureWrapper(GRU(units = units, return_sequences = True), input_shape = (None, embedding_dim), ngram = i))
+#        model.add(TimeDistributed(TimeDistributed(Dense(num_classes, activation = "exp"), implementation = 1), implementation = 1))
+#        model.compile(optimizer='sgd', loss='mse')
+#        out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+#        assert(out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes))
 
 def test_BetaLayer():
     for i in range(1,4):
@@ -59,17 +59,17 @@ def test_GammaLayer():
             out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
             assert(out.shape == (nb_samples, timesteps - i + 1, num_classes))
 
-def test_return_sequences():
-    for i in range(1,4):
-        for outer_layer in (BetaDecomposition, GammaDecomposition):
-            for inner_layer in (LSTM, GRU):
-                model = Sequential()
-                model.add(outer_layer(inner_layer(units = units, return_sequences = True), ngram = i, input_shape=(None, embedding_dim)))
-                model.add(TimeDistributed(TimeDistributed(Dense(units = num_classes, activation = "exp"))))
-    
-                model.compile(optimizer='sgd', loss='mse')
-                out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
-                assert(out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes))
+#def test_return_sequences():
+#    for i in range(1,4):
+#        for outer_layer in (BetaDecomposition, GammaDecomposition):
+#            for inner_layer in (LSTM, GRU):
+#                model = Sequential()
+#                model.add(outer_layer(inner_layer(units = units, return_sequences = True), ngram = i, input_shape=(None, embedding_dim)))
+#                model.add(TimeDistributed(TimeDistributed(Dense(units = num_classes, activation = "exp"), implementation = 1), implementation = 1))
+#    
+#                model.compile(optimizer='sgd', loss='mse')
+#                out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+#                assert(out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes))
 
 
 def test_bidirectional():
@@ -82,17 +82,6 @@ def test_bidirectional():
                 model.compile("sgd", "mse")
                 out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
                 assert out.shape == (nb_samples, timesteps - i + 1, num_classes)
-    
-    for i in range(1,4):
-        for outer_layer in (BetaDecomposition, GammaDecomposition):
-            for inner_layer in (LSTM, GRU):
-                model = Sequential()
-                model.add(Bidirectional(outer_layer(inner_layer(units = units, return_sequences = True), ngram = i,\
-                        input_shape=(None, embedding_dim)))
-                model.add(TimeDistributed(TimeDistributed(Dense(units = num_classes, activation = "exp"))))
-                model.compile("sgd", "mse")
-                out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
-                assert out.shape == (nb_samples, timesteps - i + 1, timesteps, num_classes)
     
         
 def test_unit_tests_DecompositionLSTM():
@@ -155,18 +144,19 @@ def test_unit_tests_DecompositionLSTM():
 
     W = [np.concatenate([Wi, Wf, Wc, Wo], -1), np.concatenate([Ui, Uf, Uc, Uo], -1), np.concatenate([bi, bf, bc, bo], -1)]
 
-    m = Sequential()
-    m.add(LSTM(input_shape = (None, 3), units = 2, weights = W, recurrent_activation = "sigmoid", activation = "tanh", \
-            return_sequences = True, return_all_states = True))
-    m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
-    pred = m.predict(X)[0]
+    #inp = Input((None, 3))
+    #lstm = LSTM(units = 2, weights = W, recurrent_activation = "sigmoid", activation = "tanh", \
+    #        return_sequences = True, return_all_states = True)(inp)
+    #m = Model([inp], lstm)
+    #m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
+    #pred = m.predict(X)[0]
 
-    assert np.allclose(np.array([h1, h2, h3]), pred[:,0,:])
-    assert np.allclose(np.array([c1, c2, c3]), pred[:,1,:])
-    assert np.allclose(np.array([i1, i2, i3]), pred[:,2,:])
-    assert np.allclose(np.array([f1, f2, f3]), pred[:,3,:])
-    assert np.allclose(np.array([o1, o2, o3]), pred[:,4,:])
-    assert np.allclose(np.array([h_tilde1, h_tilde2, h_tilde3]), pred[:,5,:])
+    #assert np.allclose(np.array([h1, h2, h3]), pred[0])
+    #assert np.allclose(np.array([c1, c2, c3]), pred[1])
+    #assert np.allclose(np.array([i1, i2, i3]), pred[2])
+    #assert np.allclose(np.array([f1, f2, f3]), pred[3])
+    #assert np.allclose(np.array([o1, o2, o3]), pred[4])
+    #assert np.allclose(np.array([h_tilde1, h_tilde2, h_tilde3]), pred[5])
     
 
     beta1 = np.exp(np.dot(o3 * (np.tanh(c1) - np.tanh(c0)), Wout))
@@ -292,16 +282,17 @@ def test_unit_tests_DecompositionGRU():
 
     W = [np.concatenate([Wz, Wr, Wh], -1), np.concatenate([Uz, Ur, Uh], -1), np.concatenate([bz, br, bh], -1)]
 
-    m = Sequential()
-    m.add(GRU(input_shape = (None, 3), units = 2, weights = W, recurrent_activation = "sigmoid", activation = "tanh", \
-            return_sequences = True, return_all_states = True))
-    m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
-    pred = m.predict(X)[0]
+    #inp = Input((None,3))
+    #gru = GRU(units = 2, weights = W, recurrent_activation = "sigmoid", activation = "tanh", \
+    #        return_sequences = True, return_all_states = True)(inp)
+    #m = Model([inp], gru)
+    #m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
+    #pred = m.predict(X)[0]
 
-    assert np.allclose(np.array([h1, h2, h3]), pred[:,0,:])
-    assert np.allclose(np.array([z1, z2, z3]), pred[:,1,:])
-    assert np.allclose(np.array([r1, r2, r3]), pred[:,2,:])
-    assert np.allclose(np.array([h_tilde1, h_tilde2, h_tilde3]), pred[:,3,:])
+    #assert np.allclose(np.array([h1, h2, h3]), pred[0])
+    #assert np.allclose(np.array([z1, z2, z3]), pred[1])
+    #assert np.allclose(np.array([r1, r2, r3]), pred[2])
+    #assert np.allclose(np.array([h_tilde1, h_tilde2, h_tilde3]), pred[3])
    
 
     delta1 = np.exp(np.dot(h1-h0, Wout))
@@ -398,9 +389,9 @@ def test_unit_tests_DecompositionGRU():
 
 def test_unit_tests_Erasure():
 
-    x1 = np.array([1,2,1])
-    x2 = np.array([0,1,1])
-    x3 = np.array([1,1,1])
+    x1 = np.array([1,2,1,2])
+    x2 = np.array([0,1,1,1])
+    x3 = np.array([1,1,1,1])
     
     X = np.stack([x1,x2,x3])
     X = np.stack([X,X,X])
@@ -413,16 +404,16 @@ def test_unit_tests_Erasure():
     h0 = np.array([0,0])
     c0 = np.array([0,0])
         
-    Wi = np.array([[0,0], [0,1], [0,1]])
+    Wi = np.array([[0,0], [0,1], [0,1],[1,6]])
     Ui = np.array([[0,1], [1,0]])
         
-    Wf = np.array([[2,0], [0,2], [0,1]])
+    Wf = np.array([[2,0], [0,2], [0,1],[1,4]])
     Uf = np.array([[0,2], [1,2]])
         
-    Wo = np.array([[1,0], [0,0], [0,1]])
+    Wo = np.array([[1,0], [0,0], [0,1],[1,8]])
     Uo = np.array([[0,2], [1,1]])
         
-    Wc = np.array([[1,3], [0,0], [0,1]])
+    Wc = np.array([[1,3], [0,0], [0,1],[1,4]])
     Uc = np.array([[0,1], [1,1]])
     
     bi = np.zeros((2,))
@@ -435,8 +426,7 @@ def test_unit_tests_Erasure():
     # with nothing missing
     
     model = Sequential()
-    model.add(Masking(input_shape=(3,3), mask_value = 0))
-    model.add(LSTM(units = 2, return_sequences = False, return_all_states = False, weights = W))
+    model.add(LSTM(units = 2, weights = W, input_shape = (None,4)))
     model.compile(optimizer='sgd', loss='mse')
     outnorm = model.predict(np.array([[x1, x2, x3]]))
     
@@ -447,7 +437,7 @@ def test_unit_tests_Erasure():
     out3 = model.predict(np.array([[x1, x2, np.zeros_like(x3)]]))
     
     model = Sequential()
-    model.add(ErasureWrapper(LSTM(units = 2), weights = W, input_shape=(3,3)))
+    model.add(ErasureWrapper(LSTM(units = 2), weights = W, input_shape=(None,4)))
     model.compile(optimizer='sgd', loss='mse')
     outerasure = model.predict(np.array([[x1,x2,x3]]))
 
@@ -455,13 +445,13 @@ def test_unit_tests_Erasure():
     
     # GRU
 
-    Wz = np.array([[0,0], [0,1], [0,1]])
+    Wz = np.array([[0,0], [0,1], [0,1],[1,2]])
     Uz = np.array([[0,1], [1,0]])
 
-    Wr = np.array([[2,0], [0,2], [0,1]])
+    Wr = np.array([[2,0], [0,2], [0,1],[1,1]])
     Ur = np.array([[0,2], [1,2]])
 
-    Wh = np.array([[1,0], [0,0], [0,1]])
+    Wh = np.array([[1,0], [0,0], [0,1],[1,1]])
     Uh = np.array([[0,2], [1,1]])
     
     z1 = sigmoid(np.dot(x1, Wz) + np.dot(h0, Uz))
@@ -489,8 +479,7 @@ def test_unit_tests_Erasure():
     # with nothing missing
     
     model = Sequential()
-    model.add(Masking(input_shape=(3,3), mask_value = 0))
-    model.add(GRU(units = 2, weights = W))
+    model.add(GRU(units = 2, weights = W, input_shape = (None, 4)))
     model.compile(optimizer='sgd', loss='mse')
     outnorm = model.predict(np.array([[x1, x2, x3]]))
     
@@ -503,8 +492,9 @@ def test_unit_tests_Erasure():
     out12 = model.predict(np.array([[np.zeros_like(x1), np.zeros_like(x2), x3]]))
     out23 = model.predict(np.array([[x1, np.zeros_like(x2), np.zeros_like(x3)]]))
     
+    
     model = Sequential()
-    model.add(ErasureWrapper(GRU(units = 2, weights = W), input_shape=(3,3), ngram = 1))
+    model.add(ErasureWrapper(GRU(units = 2, weights = W), input_shape=(3,4), ngram = 1))
     model.compile(optimizer='sgd', loss='mse')
     outerasure = model.predict(np.array([[x1,x2,x3]]))
 
@@ -513,7 +503,7 @@ def test_unit_tests_Erasure():
     # with 2 x missing
     
     model = Sequential()
-    model.add(ErasureWrapper(GRU(units = 2), weights = W, input_shape=(3,3), ngram = 2))
+    model.add(ErasureWrapper(GRU(units = 2), weights = W, input_shape=(None,4), ngram = 2))
     model.compile(optimizer='sgd', loss='mse')
     outerasure = model.predict(np.array([[x1,x2,x3]]))
     assert(np.allclose(np.array([outnorm-out12, outnorm-out23]).squeeze(), outerasure))
@@ -522,7 +512,7 @@ def test_unit_tests_Erasure():
     # with bidirectional
     
     model = Sequential()
-    model.add(Bidirectional(GRU(units = 2), weights = W + Wb, input_shape = (3,3)))
+    model.add(Bidirectional(GRU(units = 2), weights = W + Wb, input_shape = (3,4)))
     model.compile(optimizer='sgd', loss='mse')
     outnorm = model.predict(np.array([[x1, x2, x3]]))
     
@@ -531,15 +521,76 @@ def test_unit_tests_Erasure():
     out1 = model.predict(np.array([[np.zeros_like(x1), x2, x3]]))
     out2 = model.predict(np.array([[x1, np.zeros_like(x2), x3]]))
     out3 = model.predict(np.array([[x1, x2, np.zeros_like(x3)]]))
-
-    model = Sequential()
-    model.add(ErasureWrapper(Bidirectional(GRU(units = 2), weights = W + Wb), ngram = 1, input_shape = (3,3)))
-    model.compile(optimizer='sgd', loss='mse')
-    outerasure = model.predict(np.array([[x1,x2,x3]]))
-
-    assert(np.allclose(np.array([outnorm-out1, outnorm-out2, np.zeros_like(outnorm - out3)]).squeeze(), outerasure))
     
+    model = Sequential()
+    model.add(ErasureWrapper(Bidirectional(GRU(units = 2), weights = W + Wb), ngram = 1, input_shape = (3,4)))
+    model.compile(optimizer='sgd', loss='mse')
+    outerasurebi = model.predict(np.array([[x1,x2,x3]]))
 
+    assert(np.allclose(np.array([outnorm-out1, outnorm-out2, outnorm - out3]).squeeze(), outerasurebi))
+    
+    
+    # with masking
+    
+    model = Sequential()
+    model.add(Masking(mask_value = 0, input_shape = (3,4)))
+    model.add(GRU(units = 2, weights = W))
+    model.compile(optimizer='sgd', loss='mse')
+    outnormbi = model.predict(np.array([[x1, x2, np.zeros_like(x3)]]))
+    
+    out1 = model.predict(np.array([[np.zeros_like(x1), x2, np.zeros_like(x3)]]))
+    out2 = model.predict(np.array([[x1, np.zeros_like(x2), np.zeros_like(x3)]]))
+    out3 = model.predict(np.array([[x1, x2, np.zeros_like(x3)]]))
+    
+    model = Sequential()
+    model.add(Masking(0, input_shape = (3,4)))
+    model.add(ErasureWrapper(GRU(units = 2), weights = W, ngram = 1))
+    model.compile(optimizer='sgd', loss='mse')
+    outerasurebi = model.predict(np.array([[x1,x2,np.zeros_like(x3)]]))
+    
+    # with bidir + masking
+    
+    model = Sequential()
+    model.add(Masking(mask_value = 0, input_shape = (3,4)))
+    model.add(Bidirectional(GRU(units = 2), weights = W + Wb))
+    model.compile(optimizer='sgd', loss='mse')
+    outnormbi = model.predict(np.array([[x1, x2, np.zeros_like(x3)]]))
+    
+    out1 = model.predict(np.array([[np.zeros_like(x1), x2, np.zeros_like(x3)]]))
+    out2 = model.predict(np.array([[x1, np.zeros_like(x2), np.zeros_like(x3)]]))
+    out3 = model.predict(np.array([[x1, x2, np.zeros_like(x3)]]))
+    
+    model = Sequential()
+    model.add(Masking(0, input_shape = (3,4)))
+    model.add(ErasureWrapper(Bidirectional(GRU(units = 2), weights = W + Wb), ngram = 1))
+    model.compile(optimizer='sgd', loss='mse')
+    outerasurebi = model.predict(np.array([[x1,x2,np.zeros_like(x3)]]))
+    
+    # with bidir + masking
+    WW = np.array([[1,2,3],[4,5,6],[6,5,4],[1,1,2]])
+    bb = np.array([1,2,2])
+    Wemb = [np.random.random((5,4))]
+    
+    model = Sequential()
+    model.add(Embedding(input_dim = 5, output_dim = 4, mask_zero = True, weights = Wemb))
+    model.add(Bidirectional(GRU(units = 2), weights = W + Wb))
+    model.add(Dense(units=3, weights = [WW, bb], use_bias = True, activation = "linear"))
+    model.compile(optimizer='sgd', loss='mse')
+    outnormbi = model.predict(np.array([[1,2,0]]))
+    
+    out1 = model.predict(np.array([[0,2,0]]))
+    out2 = model.predict(np.array([[1,0,0]]))
+    out3 = model.predict(np.array([[1,2,0]]))
+    
+    model = Sequential()
+    model.add(Embedding(input_dim = 5, output_dim = 4, mask_zero = True, weights = Wemb))
+    model.add(ErasureWrapper(Bidirectional(GRU(units = 2), weights = W + Wb), ngram = 1))
+    model.add(TimeDistributed(Dense(units=3, activation = "linear", use_bias = False), weights = [WW]))
+    model.compile(optimizer='sgd', loss='mse')
+    outerasurebi = model.predict(np.array([[1,2,0]]))
+
+    assert(np.allclose(np.array([outnormbi-out1, outnormbi-out2, outnormbi - out3]).squeeze(), outerasurebi))
+    
 def test_unit_tests_DecompositionLSTM_bidirectional():
 
     x1 = np.array([1,2,1])
@@ -664,14 +715,23 @@ def test_unit_tests_DecompositionLSTM_bidirectional():
     beta1 = np.exp(np.dot(rbeta1, Wout))
     beta2 = np.exp(np.dot(rbeta2, Wout))
     beta3 = np.exp(np.dot(rbeta3, Wout))
-
+    
     m = Sequential()
-    m.add(Bidirectional(BetaDecomposition(LSTM(units = 2, recurrent_activation = "sigmoid")), weights = Wf + Wb, input_shape = (None, 3)))
-    m.add(TimeDistributed(Dense(units = 3, activation = "exp"), weights = [Wout, bout]))
+    m.add(BetaDecomposition(LSTM(units = 2, recurrent_activation = "sigmoid", go_backwards = True), weights = Wb, input_shape = (None, 3)))
     m.compile("sgd", "mse")
     pred = m.predict(X)[0]
     
-    assert(np.allclose(pred, np.array([beta1, beta2, beta3])))
+    assert(np.allclose(pred, np.array([rbeta3b, rbeta2b, rbeta1b])))
+
+    m = Sequential()
+    m.add(Bidirectional(BetaDecomposition(LSTM(units = 2, recurrent_activation = "sigmoid")), weights = Wf + Wb, input_shape = (None, 3)))
+    #m.add(TimeDistributed(Dense(units = 3, activation = "exp"), weights = [Wout, bout]))
+    m.compile("sgd", "mse")
+    pred = m.predict(X)[0]
+    
+    
+
+    assert(np.allclose(pred, np.array([rbeta1, rbeta2, rbeta3])))
     
     # gamma
     
@@ -696,7 +756,7 @@ def test_unit_tests_DecompositionLSTM_bidirectional():
     m.add(TimeDistributed(Dense(units = 3, activation = "exp", weights = [Wout, bout])))
     m.compile("sgd", "mse")
     pred = m.predict(X)[0]
-
+    
     assert(np.allclose(pred, np.array([gamma1, gamma2, gamma3])))
 
     
@@ -735,7 +795,7 @@ def test_unit_tests_DecompositionLSTM_bidirectional():
     m.add(TimeDistributed(Dense(units = 3, activation = "exp"), weights = [Wout, bout]))
     m.compile(loss = "categorical_crossentropy", optimizer = "adagrad")
     pred = m.predict(X)[0]
-
+    
     assert(np.allclose(pred, np.array([mbeta1, mbeta2, np.ones_like(mbeta2)])))
     
     m = Sequential()
