@@ -63,17 +63,17 @@ class TextLime(Lime):
         return input_shape[:2] + (self.model.output_shape[-1],) # samples, timesteps, #classes
     
     def all_samples(self, inputlength):
-        maxlength = min(self.maxlength, inputlength)
+        maxlength = min(self.maxlength, inputlength + 1)
         minlength = min(self.minlength, inputlength)
 
-        return sum([[(s,l) for s in range(0, inputlength - l)] for l in range(minlength, maxlength)], [])
+        return sum([[(s,l) for s in range(0, inputlength + 1 - l)] for l in range(minlength, maxlength)], [])
     
     def find_unpadded_length(self, x):
         if not self.pad is None:
             _x_len = 0
             for i in range(x.shape[0]):
                 if x[i] != self.pad:
-                    _x_len = i
+                    _x_len = i+1
             return _x_len
 
         else:
@@ -91,6 +91,11 @@ class TextLime(Lime):
         assert len(x.shape) == 1
         
         x_len = self.find_unpadded_length(x)
+        numclasses = self.model.output_shape[-1]
+        
+        if x_len == 0:
+            return np.zeros((x.shape[0], numclasses))
+	
         samples = self.all_samples(x_len)
         nb_orig_samples = len(samples)
         
@@ -98,37 +103,46 @@ class TextLime(Lime):
             idx = np.random.choice(range(len(samples)), min(len(samples), self.nb_samples), replace = False)
             samples = [samples[i] for i in idx]
         
-        masks = np.array([[0] * start + [1] * length + [0] * (x.shape[0] - start - length) for start, length in samples])
-        
-        input_original = []
-	
-        for mask in masks:
-            nonzero = mask.nonzero()[0]
-            relevant = np.concatenate([x[nonzero], np.ones((self.maxlength - len(nonzero),), dtype = 'int') * self.pad])
-            input_original.append(relevant)
-	    
-        scores = self.model.predict(np.array(input_original), verbose = 0)
-        
-        weights = []
+        masks_by_length = {}
+        for start, length in samples:
+            if not length in masks_by_length:
+                masks_by_length[length] = []
+            masks_by_length[length].append(np.array([0] * start + [1] * length + [0] * (x.shape[0] - start - length)))
 
-        for cl in range(self.model.output_shape[-1]):
+
+        all_masks = []
+        all_scores = []
+
+        for length in masks_by_length.keys():
+            input_original = np.stack([x[mask.nonzero()[0]] for mask in masks_by_length[length]], axis = 0)
+            masks = np.stack(masks_by_length[length], axis = 0)
+            scores = self.model.predict(input_original, verbose = 0)
+            
+            all_scores.append(scores)
+            all_masks.append(masks)
+        
+        # masks & scores are now ordered by length; this does not matter since fit() will shuffle them
+        all_scores = np.concatenate(all_scores, axis = 0)
+        all_masks = np.concatenate(all_masks, axis = 0)
+        all_weights = []
+        
+        for cl in range(numclasses):
             if self.loss == "binary_crossentropy":
-                y = scores.argmax(axis = 1) == cl # 1 for samples where self.model has predicted cl, 0 elsewhere
+                y = all_scores.argmax(axis = 1) == cl # 1 for samples where self.model has predicted cl, 0 elsewhere
                 delta = 0.0001
             elif self.loss == "mse":
-                y = scores[:,cl] # return the raw scores for cl
+                y = all_scores[:,cl] # return the raw scores for cl
                 delta = 0.00001
             
             self.lime_model.set_weights(self.initial_weights) # reset weights
 
-            self.lime_model.fit(masks, y, verbose = 0, epochs = 10000, shuffle = True, \
+            self.lime_model.fit(all_masks, y, verbose = 0, epochs = 10000, shuffle = True, \
                     callbacks = [EarlyStopping(monitor="loss", min_delta = delta, patience = 10)])
 
-            weights_cl = self.lime_model.get_weights()[0].squeeze()[:x_len]
-            weights_cl = np.concatenate([weights_cl, np.zeros((x.shape[0] - x_len,))], axis = 0)
-            weights.append(weights_cl)
+            all_weights.append(self.lime_model.get_weights()[0][:x_len])
             
-        weights = np.array(weights).transpose() # timesteps, #classes
-        return weights
+        all_weights = np.concatenate(all_weights, axis = 1)
+        all_weights = np.concatenate([all_weights, np.zeros((x.shape[0] - x_len, numclasses))], axis = 0)
+        return all_weights
 
 
