@@ -266,7 +266,9 @@ class Bidirectional(Wrapper):
     def _get_initial_weights(self):
         if self._initial_weights:
             return self._initial_weights
-        return self.forward_layer._get_initial_weights() + self.backward_layer._get_initial_weights()
+        if self.forward_layer._get_initial_weights() and self.backward_layer._get_initial_weights():
+            return self.forward_layer._get_initial_weights() + self.backward_layer._get_initial_weights()
+        return None
 
 
     def get_weights(self):
@@ -399,10 +401,14 @@ class Bidirectional(Wrapper):
 
 
 class ErasureWrapper(Wrapper):
-	def __init__(self, layer, ngram = 1, **kwargs):
+	def __init__(self, layer, ngram = 1, mode = "zero", seed = None, **kwargs):
 		super(ErasureWrapper, self).__init__(layer, **kwargs)
 		self.supports_masking = True
 		self.ngram = ngram
+		self.mode = mode
+		self.seed = seed
+		if not self.seed:
+			self.seed = np.random.randint(1000)
 
 	def build(self, input_shape):
 		super(ErasureWrapper, self).build()
@@ -427,35 +433,56 @@ class ErasureWrapper(Wrapper):
 		diag = sum([K.eye(rows = input_shape[1] - self.ngram + 1, columns = input_shape[1], offset = i) \
 			for i in range(self.ngram)])
 		
-		anti_diag = (-1) * (diag - 1) # 1 -> 0, 0 -> 1 (zeros on diagonal, 1 elsewhere)
-		
+		for i in range(2, ndim):
+			diag = K.expand_dims(diag, -1) # add any missing deeper dimensions
+
+		if self.mode == "noise":
+			mean = K.mean(inputs)
+			stddev = K.std(inputs)
 
 		if int_input_shape[0]:
-			anti_diag = K.expand_dims(anti_diag, 0) # 1, causers, timesteps
-			for i in range(2, ndim):
-				anti_diag = K.expand_dims(anti_diag, -1) # add any missing deeper dimensions
+			diag = K.expand_dims(diag, 0) # 1, causers, timesteps
 			
-			def step(_anti_diag, _): # _diag.shape = (1, timesteps(rnn), ...)
+			def step(_diag, _): # _diag.shape = (1, timesteps(rnn), ...)
 				_mask = mask
-				_inputs = inputs * _anti_diag
+				if self.mode == "zero":
+				    _anti_diag = (-1) * (_diag - 1)
+				    _inputs = inputs * _anti_diag
+
+				elif self.mode == "noise":
+				    _inputs = K.switch(_diag, inputs, \
+				    K.random_normal(shape=input_shape, mean = mean, stddev = stddev, seed = self.seed))
+
 				_inputs._keras_shape = int_input_shape
-				if mask:
-					_mask = mask * _anti_diag[tuple([slice(None)] * 2 + [0] * (ndim - 2))] # knock out the 2D mask
+				_inputs._uses_learning_phase = lp
+
+				if mask and self.mode == "zero":
+					_mask = mask * _anti_diag[tuple([slice(None)] * 2 + [0] * (ndim - 2))]
+
 				return orig_score - self.layer.call(_inputs, mask = _mask), []
 		
-			_, y, _, _ = K.rnn(step, anti_diag, initial_states=[]) # samples, causers, ...
+			_, y, _, _ = K.rnn(step, diag, initial_states=[]) # samples, causers, ...
+
 		else:
-			anti_diag = K.tile(anti_diag, (input_shape[0], 1))
-			if mask:
-				mask = K.repeat_elements(mask, rep = input_shape[1] - self.ngram + 1, axis = 0)
-				mask = mask * anti_diag
-			
-			for i in range(2, ndim):
-				anti_diag = K.expand_dims(anti_diag, -1)
-			
 			orig_score = K.repeat_elements(orig_score, rep = input_shape[1] - self.ngram + 1, axis = 0)
 			inputs = K.repeat_elements(inputs, rep = input_shape[1] - self.ngram + 1, axis = 0)
-			inputs = inputs * anti_diag
+			
+			diag = K.tile(diag, (input_shape[0], 1) + tuple([1] * (ndim - 2))) # samples * causers, timesteps
+
+			if self.mode == "zero":
+				anti_diag = (-1) * (diag - 1)
+				inputs *= anti_diag
+				
+			elif self.mode == "noise":
+				rand_shape = (input_shape[0] * (input_shape[1] - self.ngram + 1),) + input_shape[1:]
+				inputs = K.switch(diag, inputs, \
+					K.random_normal(shape = rand_shape, mean = mean, stddev = stddev))
+			
+			if mask:
+				mask = K.repeat_elements(mask, rep = input_shape[1] - self.ngram + 1, axis = 0)
+				if self.mode == "zero":
+					mask *= anti_diag[tuple([slice(None)] * 2 + [0] * (ndim - 2))]
+			
 			inputs._keras_shape = (None,) + int_input_shape[1:]
 			inputs._uses_learning_phase = lp
 			
@@ -554,13 +581,13 @@ class Decomposition(Wrapper):
             _, _, _, states = self.layer._call(inputs, mask = mask)
             
             if isinstance(self.layer, GRU):
-                cells = states[0] # hidden states
-                forget_gates = states[1] # z gates
+                cells = states[:,:,0] # hidden states
+                forget_gates = states[:,:,1] # z gates
 
             elif isinstance(self.layer, LSTM):
-                cells = states[1] # memory cells
-                forget_gates = states[3] # forget gates
-                out_gates = states[4] # out gates
+                cells = states[:,:,1] # memory cells
+                forget_gates = states[:,:,3] # forget gates
+                out_gates = states[:,:,4] # out gates
 
             input_length = input_shape[1]
             if not input_length:
