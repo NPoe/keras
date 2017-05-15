@@ -210,14 +210,14 @@ class Recurrent(Layer):
         else:
             shape = (input_shape[0], self.units)
         if self.return_all_states:
-            return [shape] * self.num_states
+            return shape[:2] + (self.num_states,) + shape[2:]
         else:
             return shape
 
     def compute_mask(self, inputs, mask):
         if self.return_sequences:
             if isinstance(mask, list):
-                return mask[0]
+                mask = mask[0]
             return mask
         else:
             return None
@@ -283,6 +283,8 @@ class Recurrent(Layer):
         # input shape: (nb_samples, time (padded with zeros), input_dim)
         # note that the .build() method of subclasses MUST define
         # self.input_spec and self.state_spec with complete input shapes.
+
+        
         if isinstance(inputs, list):
             initial_state = inputs[1:]
             inputs = inputs[0]
@@ -337,6 +339,8 @@ class Recurrent(Layer):
             last_output._uses_learning_phase = True
             outputs._uses_learning_phase = True
        
+        last_states = K.stack(last_states, axis = 2)
+        states = K.stack(states, axis = 2)
 
         return last_output, outputs, last_states, states
 
@@ -396,6 +400,7 @@ class Recurrent(Layer):
 
     def get_config(self):
         config = {'return_sequences': self.return_sequences,
+                  'return_all_states': self.return_all_states,
                   'go_backwards': self.go_backwards,
                   'stateful': self.stateful,
                   'unroll': self.unroll,
