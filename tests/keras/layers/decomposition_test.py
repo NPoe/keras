@@ -411,7 +411,7 @@ def test_unit_tests_Erasure():
     model = Sequential()
     model.add(ErasureWrapper(LSTM(units = 2), weights = W, input_shape=(None,4)))
     model.compile(optimizer='sgd', loss='mse')
-    outerasure = model.predict(np.array([[x1,x2,x3]]))
+    outerasure = model.predict(np.array([[x1,x2,x3],[x1,x2,x3]]))[0]
 
     assert(np.allclose(np.array([outnorm-out1, outnorm-out2, outnorm-out3]).squeeze(), outerasure))
     
