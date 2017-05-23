@@ -30,7 +30,7 @@ class Wrapper(Layer):
             self._initial_weights = self.layer._get_initial_weights()
 
     def build(self, input_shape=None):
-        built = True
+        self.built = True
 
     def _get_initial_weights(self):
         if self._initial_weights:
@@ -44,6 +44,10 @@ class Wrapper(Layer):
         else:
             return None
 
+    @property
+    def weights(self):
+        return self.layer.weights
+    
     @property
     def trainable_weights(self):
         return self.layer.trainable_weights
@@ -343,11 +347,13 @@ class Bidirectional(Wrapper):
 
     def build(self, input_shape):
         with K.name_scope(self.forward_layer.name):
-            self.forward_layer.build(input_shape)
-            self.forward_layer.built = True
+            if not self.forward_layer.built:
+                self.forward_layer.build(input_shape)
+                self.forward_layer.built = True
         with K.name_scope(self.backward_layer.name):
-            self.backward_layer.build(input_shape)
-            self.backward_layer.built = True
+            if not self.backward_layer.built:
+                self.backward_layer.build(input_shape)
+                self.backward_layer.built = True
         
         self.built = True
 
@@ -360,6 +366,13 @@ class Bidirectional(Wrapper):
         else:
             return None
 
+    @property
+    def weights(self):
+        if hasattr(self.forward_layer, 'weights'):
+            return (self.forward_layer.weights +
+                    self.backward_layer.weights)
+        return []
+    
     @property
     def trainable_weights(self):
         if hasattr(self.forward_layer, 'trainable_weights'):
@@ -414,8 +427,9 @@ class ErasureWrapper(Wrapper):
 		super(ErasureWrapper, self).build()
 		assert len(input_shape) >= 3
 		self.input_spec = [InputSpec(shape=input_shape)]
-		self.layer.build(input_shape)
-		self.layer.built = True
+		if not self.layer.built:
+		    self.layer.build(input_shape)
+		    self.layer.built = True
 		self.built = True
 
 
@@ -549,8 +563,9 @@ class Decomposition(Wrapper):
         def build(self, input_shape):
             super(Decomposition, self).build()
             self.input_spec = InputSpec(shape=input_shape)
-            self.layer.build(input_shape)
-            self.layer.built = True
+            if not self.layer.built:
+                self.layer.build(input_shape)
+                self.layer.built = True
             self.built = True
 
         
