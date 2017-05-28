@@ -679,3 +679,79 @@ class GammaDecomposition(Decomposition):
             initial_states = [])
 
         return out
+
+
+
+
+class GradientWrapper(Wrapper):
+        def __init__(self, 
+                layer,
+                mode,
+                **kwargs):
+
+            super(GradientWrapper, self).__init__(layer, **kwargs)
+            
+            assert mode in ("l1", "l2", "dot", None)
+            self.mode = mode
+            self.supports_masking = True
+            
+        def build(self, input_shape):
+            super(GradientWrapper, self).build()
+            self.input_spec = InputSpec(shape=input_shape)
+            if not self.layer.built:
+                self.layer.build(input_shape)
+                self.layer.built = True
+            self.built = True
+
+        
+        def compute_output_shape(self, input_shape):
+            basic_shape = self.layer.compute_output_shape(input_shape)
+            if self.mode is None:
+                return input_shape + basic_shape[1:]
+            else:
+                return input_shape[:2] + basic_shape[1:]
+
+        
+        def get_config(self):
+            config = {'layer': {'class_name': self.layer.__class__.__name__, 'config': self.layer.get_config()}}
+            return config
+        
+
+        def call(self, inputs, mask=None):
+            assert inputs.ndim == 3
+            
+            input_int_shape = K.int_shape(inputs) # samples, timesteps, ...
+            input_tensor_shape = K.shape(inputs) # samples, timesteps, ...
+            input_shape = tuple([input_int_shape[i] if input_int_shape[i] else input_tensor_shape[i] \
+                for i in range(len(input_int_shape))])
+    
+            outputs = self.layer.call(inputs, mask = mask) # samples, ...
+            assert outputs.ndim == 2
+            output_int_shape = self.layer.compute_output_shape(input_int_shape)
+            output_tensor_shape = K.shape(outputs)
+            output_shape = tuple([output_int_shape[i] if output_int_shape[i] else output_tensor_shape[i] \
+                for i in range(len(output_int_shape))])
+            
+            samples = K.expand_dims(K.expand_dims(K.arange(output_shape[0]), 0), -1) # 1, samples, 1
+            classes = K.expand_dims(K.expand_dims(K.arange(output_shape[-1]), 0), -1) # 1, classes, 1
+
+            def _step(_s, _):
+                #def __step(__c, __):
+                #    sample_idx = _s[0][0] # 1,1
+                #    class_idx = __c[0][0] # 1,1
+                #    return K.gradients(outputs[sample_idx, class_idx], inputs)[sample_idx], []
+                #
+                #inner = K.rnn(__step, classes, initial_states = [])[1]
+                sample_idx = _s[0][0]
+                stack = []
+                for class_idx in range(output_int_shape[-1]):
+                    stack.append(K.gradients(outputs[sample_idx, class_idx], inputs)[sample_idx])
+                return K.stack(stack, axis = -1), []
+            
+            outer = K.rnn(_step, samples, initial_states = [])[1]  
+            outer = K.permute_dimensions(outer, [1,0] + list(range(2, outer.ndim)))
+            
+            if self.mode == "l1": return K.sum(K.abs(outer), axis = 2)
+            elif self.mode == "l2": return K.sqrt(K.sum(K.square(outer), axis = 2))
+            elif self.mode == "dot": return K.sum(outer * K.expand_dims(inputs, axis = -1), axis = 2)
+            return outer
