@@ -1294,6 +1294,7 @@ class InputLayer(Layer):
         super(InputLayer, self).__init__(dtype=dtype, name=name)
 
         self.trainable = False
+        self.supports_masking = True
         self.built = True
         self.sparse = sparse
 

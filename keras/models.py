@@ -542,7 +542,7 @@ class Sequential(Model):
         self.model.trainable = self.trainable
 
         # mirror model attributes
-        self.supports_masking = self.model.supports_masking
+        self.supports_masking = all(layer.supports_masking for layer in self.layers)
         self._output_mask_cache = self.model._output_mask_cache
         self._output_tensor_cache = self.model._output_tensor_cache
         self._output_shape_cache = self.model._output_shape_cache
