@@ -686,7 +686,7 @@ class GammaDecomposition(Decomposition):
 class GradientWrapper(Wrapper):
         def __init__(self, 
                 layer,
-                mode,
+                mode = "dot",
                 out = None,
                 **kwargs):
 
