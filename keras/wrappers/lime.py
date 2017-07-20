@@ -18,6 +18,10 @@ class Lime:
     def call(self, X, mask = None, verbose = 1):
         l = []
         samples = X.shape[0]
+        if verbose:
+            print("LIME with", self.mode, "mode")
+            if self.mode == "random":
+                print ("N =", self.nb_samples)
         progbar = Progbar(target = samples, verbose = verbose)
         self.compile_lime_model(X)
         for i in range(samples):
