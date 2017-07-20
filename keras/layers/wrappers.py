@@ -687,12 +687,14 @@ class GradientWrapper(Wrapper):
         def __init__(self, 
                 layer,
                 mode,
+                out = None,
                 **kwargs):
 
             super(GradientWrapper, self).__init__(layer, **kwargs)
             
             assert mode in ("l1", "l2", "dot", None)
             self.mode = mode
+            self.out = out
             self.supports_masking = True
             
         def build(self, input_shape):
@@ -736,16 +738,13 @@ class GradientWrapper(Wrapper):
             classes = K.expand_dims(K.expand_dims(K.arange(output_shape[-1]), 0), -1) # 1, classes, 1
 
             def _step(_s, _):
-                #def __step(__c, __):
-                #    sample_idx = _s[0][0] # 1,1
-                #    class_idx = __c[0][0] # 1,1
-                #    return K.gradients(outputs[sample_idx, class_idx], inputs)[sample_idx], []
-                #
-                #inner = K.rnn(__step, classes, initial_states = [])[1]
                 sample_idx = _s[0][0]
                 stack = []
-                for class_idx in range(output_int_shape[-1]):
-                    stack.append(K.gradients(outputs[sample_idx, class_idx], inputs)[sample_idx])
+                if self.out is None:
+                    for class_idx in range(output_int_shape[-1]):
+                        stack.append(K.gradients(outputs[sample_idx, class_idx], inputs)[sample_idx])
+                else:
+                    stack.append(K.gradients(outputs[sample_idx, self.out], inputs)[sample_idx])
                 return K.stack(stack, axis = -1), []
             
             outer = K.rnn(_step, samples, initial_states = [])[1]  
