@@ -2,10 +2,11 @@
 
 import pytest
 import numpy as np
+np.random.seed(123)
 from numpy.testing import assert_allclose
 
 from keras.utils.test_utils import layer_test
-from keras.layers import recurrent, embeddings, Embedding, Input
+from keras.layers import recurrent, embeddings, Embedding, Dropout, Input
 from keras.layers.recurrent import LSTM, GRU
 from keras.models import Sequential, Model
 from keras.layers.core import Masking, Dense
@@ -15,11 +16,141 @@ from keras.utils.test_utils import keras_test
 
 from keras import backend as K
 
-nb_samples, timesteps, embedding_dim, units, num_classes = 2, 5, 6, 3, 4
+nb_samples, timesteps, embedding_dim, units, num_classes, vocab_size = 2, 5, 6, 150, 40, 3
 embedding_num = 12
 
 def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
+
+def test_EmbeddingWrapper():
+
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = True), mode = None))
+    model.compile('sgd', 'mse')
+    out = model.predict(np.random.random((nb_samples, timesteps)))
+    assert(out.shape == (nb_samples, timesteps, embedding_dim))
+    
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = False), mode = "l2"))
+    model.compile('sgd', 'mse')
+    out = model.predict(np.random.random((nb_samples, timesteps)))
+    assert(out.shape == (nb_samples, timesteps))
+    
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = True), mode = "l1"))
+    model.compile('sgd', 'mse')
+    out = model.predict(np.random.random((nb_samples, timesteps)))
+    assert(out.shape == (nb_samples, timesteps))
+
+def test_unit_tests_EmbeddingWrapper():
+    [emb0, emb1, emb2] = [np.array([1,2]), np.array([4,6]), np.array([4,4])]
+    embedding_weights = [np.array([emb0, emb1, emb2])]
+    X = np.array([[0,1,2,0]])
+    
+    mean = (emb0 + emb1 + emb2 + emb0) / 4
+    minus0, minus1, minus2 = emb0 - mean, emb1 - mean, emb2 - mean
+    
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = False), \
+    	mode = None, weights = embedding_weights))
+    model.compile('sgd', 'mse')
+
+    pred = model.predict(X)[0]
+    assert np.allclose(pred, np.array([minus0, minus1, minus2, minus0]))
+    
+    #test masking
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = True), \
+    	mode = None, weights = embedding_weights))
+    model.compile('sgd', 'mse')
+
+    pred = model.predict(X)[0]
+    assert np.allclose(pred, np.array([np.zeros_like(minus0), minus1, minus2, np.zeros_like(minus0)]))
+
+    #test l2 norm
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = False), \
+    	mode = "l2", weights = embedding_weights))
+    model.compile('sgd', 'mse')
+
+    pred = model.predict(X)[0]
+    assert np.allclose(pred, np.array([np.linalg.norm(x, ord = 2) for x in (minus0, minus1, minus2, minus0)]))
+    
+    #test l1 norm
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = False), \
+    	mode = "l1", weights = embedding_weights))
+    model.compile('sgd', 'mse')
+
+    pred = model.predict(X)[0]
+    assert np.allclose(pred, np.array([np.linalg.norm(x, ord = 1) for x in (minus0, minus1, minus2, minus0)]))
+    
+    #test masked l2 norm
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = True), \
+    	mode = "l2", weights = embedding_weights))
+    model.compile('sgd', 'mse')
+
+    pred = model.predict(X)[0]
+    assert np.allclose(pred, np.array([0] + [np.linalg.norm(x, ord = 2) for x in (minus1, minus2)] + [0]))
+
+
+
+
+
+
+
+
+'''
+
+
+def test_GradientWrapper():
+    model = Sequential()
+    model.add(GradientWrapper(GRU(units = units, return_sequences = False), input_shape = (None, embedding_dim), mode = "dot"))
+    model.compile(optimizer='sgd', loss='mse')
+    out = model.predict(np.random.random((nb_samples, timesteps, embedding_dim)))
+    assert(out.shape == (nb_samples, timesteps, units))
+    
+    model = Sequential()
+    model.add(Embedding(input_dim=5, output_dim = embedding_dim, mask_zero = True))
+    inner_model = Sequential()
+    inner_model.add(GRU(units = units, return_sequences = False, input_shape = (None, embedding_dim)))
+    #inner_model.add(Dropout(0.5))
+    inner_model.add(Dense(units = num_classes, activation = "linear"))
+    model.add(GradientWrapper(inner_model, mode = "l1"))
+    model.compile(optimizer='sgd', loss='mse')
+    a = np.array([[1,2,3,0,0], [1,3,0,0,0]])
+    out = model.predict(a)
+    assert(out.shape == (nb_samples, timesteps, num_classes))
+    assert(out[0,2,0] != 0)
+    assert(out[0,3,0] == 0)
+    
+    inp = Input((None,))
+    emb = Embedding(input_dim=5, output_dim = embedding_dim, mask_zero = True)
+    gru = GRU(units = units, return_sequences = False, input_shape = (None, embedding_dim))
+    wrap = GradientWrapper(gru, mode = None)
+    dense = Dense(units = num_classes, activation = "linear")
+
+    inner = Sequential()
+    inner.add(gru)
+    inner.add(dense)
+    wrap2 = GradientWrapper(inner, mode = None)
+
+    outp = dense(wrap(emb(inp)))
+    outp2 = wrap2(emb(inp))
+    model = Model([inp], [outp])
+    model2 = Model([inp], [outp2])
+    print("predicting model1")
+    out = model.predict(a)
+    print("predicting model2")
+    out2 = model2.predict(a)
+    print("model1")
+    print(out)
+    print("model2")
+    print(out2)
+    assert (0)
+
+
 
 def test_ErasureWrapper():
     for i in range(1,4):
@@ -958,6 +1089,6 @@ def test_unit_tests_DecompositionGRU_bidirectional():
     pred = m.predict(X)[0]
 
     assert(np.allclose(pred, np.array([mgamma1, mgamma2, np.ones_like(mgamma2)])))
-
+'''
 if __name__ == '__main__':
     pytest.main([__file__])

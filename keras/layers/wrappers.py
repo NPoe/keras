@@ -5,6 +5,7 @@ import copy
 import numpy as np
 import inspect
 from .recurrent import GRU, LSTM
+from .embeddings import Embedding
 from ..engine import Layer
 from ..engine import InputSpec
 from .. import activations
@@ -412,6 +413,58 @@ class Bidirectional(Wrapper):
         base_config = super(Bidirectional, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class EmbeddingWrapper(Wrapper):
+	def __init__(self, layer, mode = None, **kwargs):
+		if 'input_shape' not in kwargs:
+			if layer.input_length:
+				kwargs['input_shape'] = (layer.input_length,)
+			else:
+				kwargs['input_shape'] = (None,)
+
+		super(EmbeddingWrapper, self).__init__(layer, **kwargs)
+		assert mode in (None, "l1", "l2")
+		self.mode = mode
+		assert isinstance(self.layer, Embedding)
+
+	def build(self, input_shape):
+		super(EmbeddingWrapper, self).build()
+		assert len(input_shape) == 2 # batches, samples
+		self.input_spec = [InputSpec(shape=input_shape)]
+		if not self.layer.built:
+			self.layer.build(input_shape)
+			self.layer.built = True
+		self.built = True
+
+	def call(self, inputs):
+		orig_score = self.layer.call(inputs)
+
+		averaged_embedding = K.mean(orig_score, axis = 1) # batches, embsize
+		averaged_embedding = K.expand_dims(averaged_embedding, 1) # batches, 1, embsize
+		subtracted = orig_score - averaged_embedding
+		
+		mask = self.layer.compute_mask(inputs) # batches, samples
+		if not mask is None:
+			mask = K.expand_dims(mask, -1)
+			subtracted *= mask
+		
+		if self.mode is None:
+			return subtracted
+		elif self.mode == "l1":
+			return K.sum(K.abs(subtracted), axis = -1)
+		elif self.mode == "l2":
+			return K.sqrt(K.sum(K.square(subtracted), axis = -1))
+			
+
+	def compute_mask(self, inputs, mask = None):
+		return self.layer.compute_mask(inputs, mask)
+		
+	def compute_output_shape(self, input_shape):
+		base_shape = self.layer.compute_output_shape(input_shape)
+		if self.mode is None:
+			return base_shape
+		else:
+			return base_shape[:-1] # batches, samples
+		
 
 class ErasureWrapper(Wrapper):
 	def __init__(self, layer, ngram = 1, mode = "zero", seed = None, **kwargs):
