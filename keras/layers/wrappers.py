@@ -414,7 +414,7 @@ class Bidirectional(Wrapper):
         return dict(list(base_config.items()) + list(config.items()))
 
 class EmbeddingWrapper(Wrapper):
-	def __init__(self, layer, mode = None, **kwargs):
+	def __init__(self, layer, mode, scope, **kwargs):
 		if 'input_shape' not in kwargs:
 			if layer.input_length:
 				kwargs['input_shape'] = (layer.input_length,)
@@ -423,7 +423,9 @@ class EmbeddingWrapper(Wrapper):
 
 		super(EmbeddingWrapper, self).__init__(layer, **kwargs)
 		assert mode in (None, "l1", "l2")
+		assert scope in ("global", "local")
 		self.mode = mode
+		self.scope = scope
 		assert isinstance(self.layer, Embedding)
 
 	def build(self, input_shape):
@@ -438,8 +440,14 @@ class EmbeddingWrapper(Wrapper):
 	def call(self, inputs):
 		orig_score = self.layer.call(inputs)
 
-		averaged_embedding = K.mean(orig_score, axis = 1) # batches, embsize
-		averaged_embedding = K.expand_dims(averaged_embedding, 1) # batches, 1, embsize
+		if self.scope == "local":
+			averaged_embedding = K.mean(orig_score, axis = 1) # batches, embsize
+		else:
+			emb_matrix = self.layer.weights[0] # vocab_size, embsize
+			averaged_embedding = K.mean(emb_matrix, axis = 0) # embsize
+			averaged_embedding = K.expand_dims(averaged_embedding, 0) # 1, embsize
+
+		averaged_embedding = K.expand_dims(averaged_embedding, 1) # 1/batches, 1, embsize
 		subtracted = orig_score - averaged_embedding
 		
 		mask = self.layer.compute_mask(inputs) # batches, samples

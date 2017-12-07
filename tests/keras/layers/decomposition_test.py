@@ -25,19 +25,22 @@ def sigmoid(x):
 def test_EmbeddingWrapper():
 
     model = Sequential()
-    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = True), mode = None))
+    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = True), 
+        scope = "local", mode = None))
     model.compile('sgd', 'mse')
     out = model.predict(np.random.random((nb_samples, timesteps)))
     assert(out.shape == (nb_samples, timesteps, embedding_dim))
     
     model = Sequential()
-    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = False), mode = "l2"))
+    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = False), 
+        scope = "local", mode = "l2"))
     model.compile('sgd', 'mse')
     out = model.predict(np.random.random((nb_samples, timesteps)))
     assert(out.shape == (nb_samples, timesteps))
     
     model = Sequential()
-    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = True), mode = "l1"))
+    model.add(EmbeddingWrapper(Embedding(input_dim = vocab_size, output_dim = embedding_dim, mask_zero = True), 
+        scope = "global", mode = "l1"))
     model.compile('sgd', 'mse')
     out = model.predict(np.random.random((nb_samples, timesteps)))
     assert(out.shape == (nb_samples, timesteps))
@@ -52,7 +55,7 @@ def test_unit_tests_EmbeddingWrapper():
     
     model = Sequential()
     model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = False), \
-    	mode = None, weights = embedding_weights))
+    	mode = None, scope = "local", weights = embedding_weights))
     model.compile('sgd', 'mse')
 
     pred = model.predict(X)[0]
@@ -61,7 +64,7 @@ def test_unit_tests_EmbeddingWrapper():
     #test masking
     model = Sequential()
     model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = True), \
-    	mode = None, weights = embedding_weights))
+    	mode = None, scope = "local", weights = embedding_weights))
     model.compile('sgd', 'mse')
 
     pred = model.predict(X)[0]
@@ -70,7 +73,7 @@ def test_unit_tests_EmbeddingWrapper():
     #test l2 norm
     model = Sequential()
     model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = False), \
-    	mode = "l2", weights = embedding_weights))
+    	mode = "l2", scope = "local", weights = embedding_weights))
     model.compile('sgd', 'mse')
 
     pred = model.predict(X)[0]
@@ -79,7 +82,7 @@ def test_unit_tests_EmbeddingWrapper():
     #test l1 norm
     model = Sequential()
     model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = False), \
-    	mode = "l1", weights = embedding_weights))
+    	mode = "l1", scope = "local", weights = embedding_weights))
     model.compile('sgd', 'mse')
 
     pred = model.predict(X)[0]
@@ -88,15 +91,23 @@ def test_unit_tests_EmbeddingWrapper():
     #test masked l2 norm
     model = Sequential()
     model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = True), \
-    	mode = "l2", weights = embedding_weights))
+    	mode = "l2", scope = "local", weights = embedding_weights))
     model.compile('sgd', 'mse')
 
     pred = model.predict(X)[0]
     assert np.allclose(pred, np.array([0] + [np.linalg.norm(x, ord = 2) for x in (minus1, minus2)] + [0]))
+    
+    #test global
+    mean = (emb0 + emb1 + emb2) / 3
+    minus0, minus1, minus2 = emb0 - mean, emb1 - mean, emb2 - mean
 
+    model = Sequential()
+    model.add(EmbeddingWrapper(Embedding(input_dim = 3, output_dim = 2, mask_zero = True), \
+    	mode = "l2", scope = "global", weights = embedding_weights))
+    model.compile('sgd', 'mse')
 
-
-
+    pred = model.predict(X)[0]
+    assert np.allclose(pred, np.array([0] + [np.linalg.norm(x, ord = 2) for x in (minus1, minus2)] + [0]))
 
 
 
