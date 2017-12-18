@@ -7,6 +7,7 @@ from ..layers import Dense
 from ..callbacks import EarlyStopping
 from ..utils.generic_utils import Progbar
 from ..regularizers import l1
+from ..optimizers import SGD
 
 class Lime:
     def __init__(self, model, **kwargs):
@@ -37,7 +38,7 @@ class Lime:
 
 class TextLime(Lime):
     def __init__(self, model, 
-        mode = "full", 
+        mode = "random", 
         pad = 0, 
         nb_samples = 10000, 
         minlength = 2, 
@@ -87,7 +88,7 @@ class TextLime(Lime):
         self.lime_model = Sequential()
         self.lime_model.add(Dense(input_shape=(X.shape[1],), units = 1, activation = self.activation, 
             use_bias = False, kernel_regularizer = l1()))
-        self.lime_model.compile(loss = self.loss, optimizer = "rmsprop", metrics = ["accuracy"])
+        self.lime_model.compile(loss = self.loss, optimizer = SGD(momentum = 0.9, nesterov = True), metrics = ["accuracy"])
         self.initial_weights = self.lime_model.get_weights()
 
     def _lime(self, x):
@@ -133,16 +134,12 @@ class TextLime(Lime):
         for cl in range(numclasses):
             if self.loss == "binary_crossentropy":
                 y = all_scores.argmax(axis = 1) == cl # 1 for samples where self.model has predicted cl, 0 elsewhere
-                delta = 0.0001
             elif self.loss == "mse":
                 y = all_scores[:,cl] # return the raw scores for cl
-                delta = 0.00001
             
             self.lime_model.set_weights(self.initial_weights) # reset weights
 
-            self.lime_model.fit(all_masks, y, verbose = 0, epochs = 10000, shuffle = True, \
-                    callbacks = [EarlyStopping(monitor="loss", min_delta = delta, patience = 10)])
-
+            self.lime_model.fit(all_masks, y, verbose = 0, epochs = 200, batch_size = all_masks.shape[0], shuffle = True)
             all_weights.append(self.lime_model.get_weights()[0][:x_len])
             
         all_weights = np.concatenate(all_weights, axis = 1)
