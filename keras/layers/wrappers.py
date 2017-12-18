@@ -804,14 +804,18 @@ class GradientWrapper(Wrapper):
                 if self.out is None:
                     for class_idx in range(output_int_shape[-1]):
                         stack.append(K.gradients(outputs[sample_idx, class_idx], inputs)[sample_idx])
+                    return K.stack(stack, axis = -1), []
+                
                 else:
-                    stack.append(K.gradients(outputs[sample_idx, self.out], inputs)[sample_idx])
-                return K.stack(stack, axis = -1), []
+                    return K.expand_dims(K.gradients(outputs[sample_idx, self.out], inputs)[sample_idx], 1), []
             
             outer = K.rnn(_step, samples, initial_states = [])[1]  
             outer = K.permute_dimensions(outer, [1,0] + list(range(2, outer.ndim)))
             
+            if not self.out is None:
+                outer = K.expand_dims(outer, -1)
             if self.mode == "l1": return K.sum(K.abs(outer), axis = 2)
-            elif self.mode == "l2": return K.sqrt(K.sum(K.square(outer), axis = 2))
+            elif self.mode == "l2":
+                return K.sqrt(K.sum(K.square(outer), axis = 2))
             elif self.mode == "dot": return K.sum(outer * K.expand_dims(inputs, axis = -1), axis = 2)
             return outer
