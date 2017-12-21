@@ -16,7 +16,7 @@ class Lime:
     def get_output_shape_for(self, input_shape):
         raise NotImplementedError()
 
-    def call(self, X, mask = None, verbose = 1):
+    def call(self, X, mask = None, verbose = 1, out = None):
         l = []
         samples = X.shape[0]
         if verbose:
@@ -26,7 +26,9 @@ class Lime:
         progbar = Progbar(target = samples, verbose = verbose)
         self.compile_lime_model(X)
         for i in range(samples):
-            l.append(self._lime(X[i]))
+            if out is None: o = None
+            else: o = out[i]
+            l.append(self._lime(X[i], out = o))
             progbar.update(current = i+1)
         if verbose:
             print("")
@@ -86,12 +88,13 @@ class TextLime(Lime):
 
     def compile_lime_model(self, X):
         self.lime_model = Sequential()
+        np.random.seed(12345)
         self.lime_model.add(Dense(input_shape=(X.shape[1],), units = 1, activation = self.activation, 
             use_bias = False, kernel_regularizer = l1()))
         self.lime_model.compile(loss = self.loss, optimizer = SGD(momentum = 0.9, nesterov = True), metrics = ["accuracy"])
         self.initial_weights = self.lime_model.get_weights()
 
-    def _lime(self, x):
+    def _lime(self, x, out = None):
         
         assert len(x.shape) == 1
         
@@ -130,8 +133,12 @@ class TextLime(Lime):
         all_scores = np.concatenate(all_scores, axis = 0)
         all_masks = np.concatenate(all_masks, axis = 0)
         all_weights = []
+
+        if out is None: classes = list(range(numclasses))
         
-        for cl in range(numclasses):
+        else: classes = classes = [out]
+        
+        for cl in classes:
             if self.loss == "binary_crossentropy":
                 y = all_scores.argmax(axis = 1) == cl # 1 for samples where self.model has predicted cl, 0 elsewhere
             elif self.loss == "mse":
@@ -139,11 +146,11 @@ class TextLime(Lime):
             
             self.lime_model.set_weights(self.initial_weights) # reset weights
 
-            self.lime_model.fit(all_masks, y, verbose = 0, epochs = 200, batch_size = all_masks.shape[0], shuffle = True)
+            self.lime_model.fit(all_masks, y, verbose = 0, epochs = 1000, batch_size = all_masks.shape[0], shuffle = True)
             all_weights.append(self.lime_model.get_weights()[0][:x_len])
             
         all_weights = np.concatenate(all_weights, axis = 1)
-        all_weights = np.concatenate([all_weights, np.zeros((x.shape[0] - x_len, numclasses))], axis = 0)
+        all_weights = np.concatenate([all_weights, np.zeros((x.shape[0] - x_len, len(classes)))], axis = 0)
         return all_weights
 
 
