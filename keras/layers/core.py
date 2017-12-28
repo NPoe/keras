@@ -835,7 +835,16 @@ class Dense(Layer):
         self.kernel_constraint = constraints.get(kernel_constraint)
         self.bias_constraint = constraints.get(bias_constraint)
         self.input_spec = InputSpec(min_ndim=2)
-        self.supports_masking = True
+    
+
+    def lrp(self, R, inputs, mask=None, epsilon=0.001):
+        Z = K.expand_dims(self.kernel, 0) * K.expand_dims(inputs, -1)
+        Zs = K.expand_dims(K.sum(Z, axis = 1), 1)
+        if self.use_bias:
+           Zs += K.expand_dims(K.expand_dims(self.bias, 0), 0)
+        Zs += epsilon * ((Zs >= 0)*2-1)
+        return K.sum((Z / Zs) * K.expand_dims(R, 1), 2)
+            
 
     def build(self, input_shape):
         assert len(input_shape) >= 2
@@ -887,38 +896,6 @@ class Dense(Layer):
         }
         base_config = super(Dense, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-
-    def _make_lrp_backwards_function(self, eps):
-
-        alpha = eps
-        beta = 1-alpha
-
-        X = K.placeholder(shape = self.input_shape, name = "LRP_X_backwards_" + self.name)
-        R = K.placeholder(shape = self.output_shape, name = "LRP_R_backwards_" + self.name)
-
-        mask = self.inbound_nodes[0].input_masks[0]
-
-        if not mask is None:
-            X = X * mask
-
-        Z = K.expand_dims(self.W, 0) * K.expand_dims(X, -1)
-        Zp = Z * (Z > 0)
-        Zsp = K.expand_dims(K.sum(Zp, axis=1), 1) + K.expand_dims(K.expand_dims(self.b * (self.b > 0), 0), 0)
-        Ralpha = alpha * K.sum((Zp / Zsp) * K.expand_dims(R, 1), 2)
-        
-        Zn = Z * (Z < 0)
-        Zsn = K.expand_dims(K.sum(Zn, axis=1), 1) + K.expand_dims(K.expand_dims(self.b * (self.b < 0), 0), 0)
-        Rbeta = beta * K.sum((Zn / Zsn) * K.expand_dims(R, 1), 2)
-
-        Rx = Ralpha + Rbeta
-
-        
-        
-        inputs = [X, R]
-        if not mask is None:
-            inputs.append(mask)
-
-        self.lrp_backwards_function = K.function(inputs, [Rx])
 
 
 class ActivityRegularization(Layer):

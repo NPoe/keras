@@ -541,48 +541,6 @@ class SimpleRNN(Recurrent):
         self.state_spec = InputSpec(shape=(None, self.units))
     
     
-    def _make_lrp_backwards_function(self, eps):
-
-        X = K.placeholder(shape = self.input_shape, name = "LRP_X_backwards_" + self.name)
-        R = K.placeholder(shape = self.output_shape, name = "LRP_R_backwards_" + self.name)
-
-        mask = self.inbound_nodes[0].input_masks[0]
-
-        allstates = self._call(X, mask = mask)[-1]
-
-        H = allstates[0]
-
-        zeros = K.zeros_like(H[:,-1:])
-        H = K.concatenate([zeros, H[:,:-1]], 1)
-
-        weights = K.concatenate([self.W, self.U], 0)
-        XH = K.concatenate([X, H], 2)
-
-        wh = weights[:,(-1)*self.units:]
-        bh = self.b[(-1)*self.units:]
-
-        def _step(xh, states):
-            Rhtp1 = states[0]
-
-            Z = K.expand_dims(wh, 0) * K.expand_dims(xh, -1)
-            Zs = K.expand_dims(K.sum(Z, 1), 1) + K.expand_dims(K.expand_dims(bh, 0), 0)
-            Zs += eps * ((Zs >= 0)*2-1)
-            Rxh = K.sum((Z / Zs) * K.expand_dims(Rhtp1, 1), 2)
-            Rh = Rxh[:,(-1)*self.units:]
-            Rx = Rxh[:,:(-1)*self.units]
-
-            return Rx, [Rh]
-
-        _, outputs, _, _ = K.rnn(_step, XH, initial_states = [R], go_backwards = True, mask = mask)
-
-        if not self.go_backwards:
-            outputs = K.reverse(outputs, 1)
-
-        inputs = [X,R]
-        if not mask is None:
-            inputs.append(mask)
-
-        self.lrp_backwards_function = K.function(inputs, [outputs])
 
     def build(self, input_shape):
         if isinstance(input_shape, list):
@@ -807,80 +765,6 @@ class GRU(Recurrent):
         self.state_spec = InputSpec(shape=(None, self.units))
 
     
-    def _make_lrp_backwards_function(self, eps):
-
-        alpha = eps
-        beta = 1-alpha
-
-        X = K.placeholder(shape = self.input_shape, name = "LRP_X_backwards_" + self.name)
-        R = K.placeholder(shape = self.output_shape, name = "LRP_R_backwards_" + self.name)
-      
-        mask = self.inbound_nodes[0].input_masks[0]
-
-        allstates = self._call(X, mask = mask)[-1]
-
-        H = allstates[0]
-
-        zeros = K.zeros_like(H[:,-1:])
-        H = K.concatenate([zeros, H[:,:-1]], 1)
-
-        weights = K.concatenate([self.W, self.U], 0)
-        XH = K.concatenate([X, H], 2)
-
-        wh = weights[:,(-1)*self.units:]
-        bh = self.b[(-1)*self.units:]
-
-        def _step(xh, states):
-            Rhtp1 = states[0]
-
-            tmp = K.dot(xh, weights) + self.b
-            z = self.inner_activation(tmp[:, :self.units])
-            r = self.inner_activation(tmp[:, self.units : 2*self.units])
-
-            x = xh[:, :(-1) * self.units]
-            h = xh[:, (-1) * self.units:]
-
-            r_all = K.concatenate([K.repeat(r, self.input_dim), K.repeat(K.ones_like(h), self.units)], 1)
-            
-            z_all = K.concatenate([K.zeros_like(x), z], -1)
-            
-            Z = K.expand_dims(wh, 0) * K.expand_dims(1-z, 1) * r_all * K.expand_dims(xh, -1)
-            Z += K.expand_dims(z_all * xh, -1)
-
-            Zp = Z * (Z > 0)
-            Zsp = K.expand_dims(K.sum(Zp, 1), 1) + K.expand_dims(K.expand_dims(bh * (bh > 0), 0), 0)
-            Ralpha = alpha * K.sum((Zp / Zsp) * K.expand_dims(R, 1), 2)
-            
-            Zn = Z * (Z < 0)
-            Zsn = K.expand_dims(K.sum(Zp, 1), 1) + K.expand_dims(K.expand_dims(bh * (bh < 0), 0), 0)
-            Rbeta = beta * K.sum((Zn / Zsn) * K.expand_dims(R, 1), 2)
-        
-           
-            Rxh = Ralpha + Rbeta
-            
-           
-            '''
-            Zs = K.expand_dims(K.sum(Z, 1), 1) + K.expand_dims(K.expand_dims(bh, 0), 0)
-            Zs += eps * ((Zs >= 0)*2-1)
-            
-            Rxh = K.sum((Z / Zs) * K.expand_dims(Rhtp1, 1), 2)
-            '''
-            
-            Rh = Rxh[:,(-1)*self.units:]
-            Rx = Rxh[:,:(-1)*self.units]
-
-            return Rx, [Rh]
-
-        _, outputs, _, _ = K.rnn(_step, XH, initial_states = [R], go_backwards = True, mask = mask)
-
-        if not self.go_backwards:
-            outputs = K.reverse(outputs, 1)
-        
-        inputs = [X,R]
-        if not mask is None:
-            inputs.append(mask)
-
-        self.lrp_backwards_function = K.function(inputs, [outputs])
     
     
     def build(self, input_shape):
@@ -1169,69 +1053,6 @@ class LSTM(Recurrent):
         self.state_spec = [InputSpec(shape=(None, self.units)),
                            InputSpec(shape=(None, self.units))]
     
-    def _make_lrp_backwards_function(self, eps):
-
-        X = K.placeholder(shape = self.input_shape, name = "LRP_X_backwards_" + self.name)
-        R = K.placeholder(shape = self.output_shape, name = "LRP_R_backwards_" + self.name)
-      
-        allstates = self._call(X, mask = mask)[-1]
-
-        mask = self.inbound_nodes[0].input_masks[0]
-
-        H = allstates[0]
-        C = allstates[1]
-
-        zeros = K.zeros_like(C[:,-1:])
-        H_shifted = K.concatenate([zeros, H[:,:-1]], 1)
-        C_shifted = K.concatenate([zeros, C[:,:-1]], 1)
-
-        weights = K.concatenate([self.W, self.U], 0)
-        XHC = K.concatenate([X, H_shifted, C_shifted], 2)
-
-        wh = weights[:,(-2)*self.units:(-1)*self.units]
-        bh = self.b[(-2)*self.units:(-1)*self.units]
-
-        #oT = self.inner_activation(K.dot(, weights) + self.b)[:, 3 * self.units :]
-        def _step(xhc, states):
-            Rhtp1 = states[0]
-
-            xh = xhc[:, :self.input_dim + self.units]
-            tmp = K.dot(xh, weights) + self.b
-
-            i = self.inner_activation(tmp[:, :self.units])
-            f = self.inner_activation(tmp[:, self.units : 2*self.units])
-            o = self.inner_activation(tmp[:, 3 * self.units :])
-
-            x = xh[:, :(-1) * self.units]
-            c = xh[:, (-1) * self.units:]
-
-            i_all = K.expand_dims(i, 1)
-            o_all = K.expand_dims(o, 1)
-
-            f_all = K.concatenate([K.zeros_like(x), f], -1)
-            
-            Z = K.expand_dims(wh, 0) * i_all * o_all * K.expand_dims(xh, -1)
-            Z += K.expand_dims(f_all * xh, -1)
-            
-            Zs = K.expand_dims(K.sum(Z, 1), 1) + K.expand_dims(K.expand_dims(bh, 0), 0)
-            Zs += eps * ((Zs >= 0)*2-1)
-            
-            Rxh = K.sum((Z / Zs) * K.expand_dims(Rhtp1, 1), 2)
-            Rh = Rxh[:,(-1)*self.units:]
-            Rx = Rxh[:,:(-1)*self.units]
-
-            return Rx, [Rh]
-
-        _, outputs, _, _ = K.rnn(_step, XHC, initial_states = [R], go_backwards = True, mask = mask)
-
-        if not self.go_backwards:
-            outputs = K.reverse(outputs, 1)
-
-        inputs = [X,R]
-        if not mask is None:
-            inputs.append(mask)
-
-        self.lrp_backwards_function = K.function(inputs, [outputs])
 
     def build(self, input_shape):
         if isinstance(input_shape, list):

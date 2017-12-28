@@ -92,14 +92,6 @@ class Embedding(Layer):
         self.mask_zero = mask_zero
         self.input_length = input_length
 
-    def _make_lrp_backwards_function(self, eps):
-        #assert self.return_sequences and self.return_all_states
-
-        X = K.placeholder(shape = self.input_shape, name = "LRP_X_backwards_" + self.name)
-        R = K.placeholder(shape = self.output_shape, name = "LRP_R_backwards_" + self.name)
-    
-        outputs = K.sum(R, 2)
-        self.lrp_backwards_function = K.function([X, R], [outputs])
 
     def build(self, input_shape):
         self.embeddings = self.add_weight(
@@ -109,6 +101,10 @@ class Embedding(Layer):
             regularizer=self.embeddings_regularizer,
             constraint=self.embeddings_constraint)
         self.built = True
+         
+
+    def lrp(self, R, inputs, mask=None, epsilon=0.001):
+        return K.sum(R, axis = -1)
 
     def compute_mask(self, inputs, mask=None):
         if not self.mask_zero:

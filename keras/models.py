@@ -750,7 +750,6 @@ class Sequential(Model):
     def compile(self, optimizer, loss,
                 metrics=None,
                 sample_weight_mode=None,
-                enable_lrp=False,
                 **kwargs):
         """Configures the learning process.
 
@@ -793,58 +792,6 @@ class Sequential(Model):
         self.metrics_tensors = self.model.metrics_tensors
         self.metrics_names = self.model.metrics_names
         self.sample_weight_mode = self.model.sample_weight_mode
-        if enable_lrp:
-            self.enable_lrp()
-
-
-    def enable_lrp(self):
-        
-        inputs = []
-        masks = []
-
-        for layer in self.layers:
-            assert len(layer.inbound_nodes) == 1 # we can only do sequential models right now
-            node = layer.inbound_nodes[0]
-            
-            inputs.append(node.input_tensors)
-            masks.append(node.input_masks)
-
-        output_shape = self.output_shape
-        if not isinstance(output_shape, list):
-            output_shape = [output_shape]
-
-        relevances = [[K.placeholder(self.output_shape[i]) for i in range(len(self.output_shape))]]
-
-        for layer, inp, mask in reversed(list(zip(self.layers, inputs, masks))):
-            r = layer.call_lrp(inp, relevances[-1], mask = mask)
-            if not isinstance(r, list):
-                r = [r]
-            relevances.append(r)
-
-        self._lrp_function = K.function(self.inputs, relevances[-1])
-
-    
-    def lrp(self, x, p):
-        if not hasattr(self, 'lrp_enabled') or not self.lrp_enabled:
-            self.enable_lrp()
-
-        X = self.lrp_forwards_function([x])
-        masks = self.lrp_masks_function([x])
-
-        X.reverse()
-        masks.reverse()
-
-        R = [p]
-
-        for layer, x in zip(reversed(self.layers), X):
-            inputs = [x, R[-1]]
-
-            if not layer.inbound_nodes[0].input_masks[0] is None:
-                inputs.append(masks.pop())
-
-            R.append(layer.lrp_backwards_function(inputs)[0])
-
-        return R[-1]
     
 
     def fit(self, x, y, batch_size=32, epochs=10, verbose=1, callbacks=None,
@@ -1346,3 +1293,19 @@ class Sequential(Model):
             layer = get_or_create_layer(conf)
             model.add(layer)
         return model
+
+    def _make_lrp_function(self, epsilon = 0.001):
+        self._lrp_backwards_functions = []
+        R = K.placeholder(shape = self.output_shape)
+        current_R = R
+
+        for layer in reversed(self.layers):
+            if len(layer.inbound_nodes) != 1 or len(layer.inbound_nodes[0].input_tensors) != 1:
+                raise Exception("LRP only for Sequential models")
+            current_R = layer.lrp(current_R, layer.inbound_nodes[0].input_tensors[0], 
+                mask = layer.inbound_nodes[0].input_masks[0], epsilon = epsilon)
+
+        self._lrp_function = K.function([R, self.layers[0].inbound_nodes[0].input_tensors[0]], [current_R])
+            
+            
+        	

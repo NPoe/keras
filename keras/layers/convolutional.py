@@ -330,6 +330,50 @@ class Conv1D(_Conv):
             **kwargs)
         self.input_spec = InputSpec(ndim=3)
 
+    def lrp(self, R, inputs, mask=None, epsilon=0.001):
+        # R (batches, length - kernel_size + 1, features)
+        assert self.strides == (1,) and self.kernel_size[0] % 2 != 0
+        x = inputs
+        
+        def pad(x, left, right, what):
+            padding = K.ones_like(x[:,:1]) * what
+            return K.concatenate([padding] * left + [x] + [padding] * right, axis = 1)
+
+        if self.padding == "same":
+            x = pad(x, self.kernel_size[0] // 2, self.kernel_size[0] // 2, 0)
+
+        Zs = 0
+        for i in range(self.kernel_size[0]):
+            start = i;
+            end = self.kernel_size[0]-i-1
+            if end == 0:
+                x_slice = x[:,start:] # batches, length-kernel_size+1, channels
+            else:
+                x_slice = x[:,start:-end] # batches, length-kernel_size+1, channels
+            filt = K.expand_dims(self.kernel[0], 0) # 1, 1, channels, features
+            Zs += K.expand_dims(x_slice, -1) * filt
+
+        Zs = K.expand_dims(K.sum(Zs, axis = 2), axis = 2) # batches, length - kernel_size + 1, 1, features
+        Zs += epsilon * ((Zs >= 0) * 2 - 1)
+#        if self.use_bias:
+#            Zs += K.expand_dims(K.expand_dims(K.expand_dims(self.bias, 0), 0), 0)
+
+        R = K.expand_dims(R, axis = 2) # batches, length - kernel_size + 1, 1, features 
+        Rx = 0
+        for i in range(self.kernel_size[0]):
+            R_padded = pad(R, i, self.kernel_size[0]-i-1, 0) # batches, length, 1, features
+            Zs_padded = pad(Zs, i, self.kernel_size[0]-i-1, 1) # batches, length, 1, features
+            Z = K.expand_dims(x, -1) * K.expand_dims(self.kernel[i], 0) # batches, length, channels, features
+            Rx_part = R_padded * Z / Zs_padded # batches, length, channels, features
+            Rx += K.sum(Rx_part, axis = -1) # batches, length, channels
+        
+        if self.padding == "same":
+            Rx = Rx[:,self.kernel_size[0]//2:-(self.kernel_size[0]//2)]
+        return Rx
+            
+
+    
+
     def get_config(self):
         config = super(Conv1D, self).get_config()
         config.pop('rank')
