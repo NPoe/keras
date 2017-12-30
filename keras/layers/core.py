@@ -837,11 +837,11 @@ class Dense(Layer):
         self.input_spec = InputSpec(min_ndim=2)
     
 
-    def lrp(self, R, inputs, mask=None, epsilon=0.001):
+    def lrp(self, R, inputs, mask=None, epsilon=0.001, bias_factor=1.0):
         Z = K.expand_dims(self.kernel, 0) * K.expand_dims(inputs, -1)
         Zs = K.expand_dims(K.sum(Z, axis = 1), 1)
         if self.use_bias:
-           Zs += K.expand_dims(K.expand_dims(self.bias, 0), 0)
+           Zs += K.expand_dims(K.expand_dims(bias_factor*self.bias, 0), 0)
         Zs += epsilon * ((Zs >= 0)*2-1)
         return K.sum((Z / Zs) * K.expand_dims(R, 1), 2)
             

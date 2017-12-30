@@ -478,6 +478,12 @@ class GlobalMaxPooling1D(_GlobalPooling1D):
         return K.max(inputs, axis=1)
 
 
+    def lrp(self, R, inputs, mask=None, epsilon = 0.001, bias_factor = 1.0):
+        # inputs (batch_size, length, filters)
+        # R (batch_size, filters)
+        Rx = K.ones_like(inputs) * K.expand_dims(R, 1) * K.equal(inputs, K.expand_dims(K.max(inputs, axis=1), 1))
+        return Rx
+
 class _GlobalPooling2D(Layer):
     """Abstract class for different global pooling 2D layers.
     """

@@ -103,7 +103,7 @@ class Embedding(Layer):
         self.built = True
          
 
-    def lrp(self, R, inputs, mask=None, epsilon=0.001):
+    def lrp(self, R, inputs, mask=None, epsilon=0.001, bias_factor=1.0):
         return K.sum(R, axis = -1)
 
     def compute_mask(self, inputs, mask=None):

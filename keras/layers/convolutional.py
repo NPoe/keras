@@ -330,7 +330,7 @@ class Conv1D(_Conv):
             **kwargs)
         self.input_spec = InputSpec(ndim=3)
 
-    def lrp(self, R, inputs, mask=None, epsilon=0.001):
+    def lrp(self, R, inputs, mask=None, epsilon=0.001, bias_factor=1.0):
         # R (batches, length - kernel_size + 1, features)
         assert self.strides == (1,) and self.kernel_size[0] % 2 != 0
         x = inputs
@@ -350,13 +350,13 @@ class Conv1D(_Conv):
                 x_slice = x[:,start:] # batches, length-kernel_size+1, channels
             else:
                 x_slice = x[:,start:-end] # batches, length-kernel_size+1, channels
-            filt = K.expand_dims(self.kernel[0], 0) # 1, 1, channels, features
+            filt = K.expand_dims(self.kernel[i], 0) # 1, 1, channels, features
             Zs += K.expand_dims(x_slice, -1) * filt
 
         Zs = K.expand_dims(K.sum(Zs, axis = 2), axis = 2) # batches, length - kernel_size + 1, 1, features
         Zs += epsilon * ((Zs >= 0) * 2 - 1)
-#        if self.use_bias:
-#            Zs += K.expand_dims(K.expand_dims(K.expand_dims(self.bias, 0), 0), 0)
+        if self.use_bias:
+            Zs += K.expand_dims(K.expand_dims(K.expand_dims(bias_factor * self.bias, 0), 0), 0)
 
         R = K.expand_dims(R, axis = 2) # batches, length - kernel_size + 1, 1, features 
         Rx = 0

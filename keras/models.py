@@ -1294,7 +1294,20 @@ class Sequential(Model):
             model.add(layer)
         return model
 
-    def _make_lrp_function(self, epsilon = 0.001):
+    def enable_lrp(self, epsilon = 0.001, bias_factor = 1.0):
+        print("Building LRP function with epsilon", epsilon, "and bias factor", bias_factor)
+        self._make_lrp_function(epsilon = epsilon, bias_factor = bias_factor)
+        
+    def lrp_on_batch(self, R, inputs, params = {}):
+        if not hasattr(self, "_lrp_function"):
+            raise Exception("LRP has not yet been enabled, call enable_lrp()")
+
+        lrp = self._lrp_function([R, inputs])
+        if len(lrp) == 1:
+            lrp = lrp[0]
+        return lrp
+
+    def _make_lrp_function(self, epsilon = 0.001, bias_factor = 1.0):
         self._lrp_backwards_functions = []
         R = K.placeholder(shape = self.output_shape)
         current_R = R
@@ -1303,7 +1316,7 @@ class Sequential(Model):
             if len(layer.inbound_nodes) != 1 or len(layer.inbound_nodes[0].input_tensors) != 1:
                 raise Exception("LRP only for Sequential models")
             current_R = layer.lrp(current_R, layer.inbound_nodes[0].input_tensors[0], 
-                mask = layer.inbound_nodes[0].input_masks[0], epsilon = epsilon)
+                mask = layer.inbound_nodes[0].input_masks[0], epsilon = epsilon, bias_factor=bias_factor)
 
         self._lrp_function = K.function([R, self.layers[0].inbound_nodes[0].input_tensors[0]], [current_R])
             

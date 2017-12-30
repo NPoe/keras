@@ -11,6 +11,14 @@ from ..engine import Layer
 from ..engine import InputSpec
 from ..legacy import interfaces
 
+def _lrp_linear_layer(hin, w, b, hout, Rout, bias_nb_units, eps, bias_factor, debug=False):
+    sign_out = (K.expand_dims(hout, 0) >= 0) * 2 - 1
+    numer = (w * K.expand_dims(hin, 1)) + ((bias_factor * K.expand_dims(b, 0) + epsilon * sign_out) + 1./bias_nb_units)
+    denom = K.expand_dims(hout, 0)  + epsilon*sign_out
+    message = (numer/denom) * K.expand_dims(Rout, 0)
+    Rin = K.sum(message, axis=1)
+    return Rin
+
 
 def _time_distributed_dense(x, w, b=None, dropout=None,
                             input_dim=None, output_dim=None,
