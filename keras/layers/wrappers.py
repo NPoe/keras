@@ -749,6 +749,7 @@ class GradientWrapper(Wrapper):
                 layer,
                 mode = "dot",
                 out = None,
+                num_alpha = 1,
                 **kwargs):
 
             super(GradientWrapper, self).__init__(layer, **kwargs)
@@ -757,6 +758,8 @@ class GradientWrapper(Wrapper):
             self.mode = mode
             self.out = out
             self.supports_masking = True
+            self.num_alpha = num_alpha
+            assert self.num_alpha >= 1
             
         def build(self, input_shape):
             super(GradientWrapper, self).build()
@@ -778,10 +781,8 @@ class GradientWrapper(Wrapper):
         def get_config(self):
             config = {'layer': {'class_name': self.layer.__class__.__name__, 'config': self.layer.get_config()}}
             return config
-        
 
-        def call(self, inputs, mask=None):
-            assert inputs.ndim == 3
+        def _call(self, inputs, mask):
             
             input_int_shape = K.int_shape(inputs) # samples, timesteps, ...
             input_tensor_shape = K.shape(inputs) # samples, timesteps, ...
@@ -797,7 +798,7 @@ class GradientWrapper(Wrapper):
             
             samples = K.expand_dims(K.expand_dims(K.arange(output_shape[0]), 0), -1) # 1, samples, 1
             classes = K.expand_dims(K.expand_dims(K.arange(output_shape[-1]), 0), -1) # 1, classes, 1
-
+            
             def _step(_s, _):
                 sample_idx = _s[0][0]
                 stack = []
@@ -811,11 +812,29 @@ class GradientWrapper(Wrapper):
             
             outer = K.rnn(_step, samples, initial_states = [])[1]  
             outer = K.permute_dimensions(outer, [1,0] + list(range(2, outer.ndim)))
-            
+            return outer
+
+        
+        def _finalize(self, inputs, outer):
             if not self.out is None:
                 outer = K.expand_dims(outer, -1)
-            if self.mode == "l1": return K.sum(K.abs(outer), axis = 2)
+            if self.mode == "l1":
+                return K.sum(K.abs(outer), axis = 2)
             elif self.mode == "l2":
                 return K.sqrt(K.sum(K.square(outer), axis = 2))
-            elif self.mode == "dot": return K.sum(outer * K.expand_dims(inputs, axis = -1), axis = 2)
-            return outer
+            elif self.mode == "dot":
+                return K.sum(outer * K.expand_dims(inputs, axis = -1), axis = 2)
+            return outer 
+
+        def call(self, inputs, mask=None):
+            assert inputs.ndim == 3
+            
+            outer_summed = 0
+            for alpha in range(self.num_alpha):
+                alpha = (alpha + 1) / self.num_alpha
+                mult = inputs * alpha
+                mult._keras_shape = K.int_shape(inputs)
+                mult._uses_learning_phase = inputs._uses_learning_phase
+                outer_summed += self._call(mult, mask)
+            outer_summed = outer_summed / self.num_alpha
+            return self._finalize(inputs, outer_summed)
