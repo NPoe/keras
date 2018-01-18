@@ -11,15 +11,6 @@ from ..engine import Layer
 from ..engine import InputSpec
 from ..legacy import interfaces
 
-def _lrp_linear_layer(hin, w, b, hout, Rout, bias_nb_units, eps, bias_factor, debug=False):
-    sign_out = (K.expand_dims(hout, 0) >= 0) * 2 - 1
-    numer = (w * K.expand_dims(hin, 1)) + ((bias_factor * K.expand_dims(b, 0) + epsilon * sign_out) + 1./bias_nb_units)
-    denom = K.expand_dims(hout, 0)  + epsilon*sign_out
-    message = (numer/denom) * K.expand_dims(Rout, 0)
-    Rin = K.sum(message, axis=1)
-    return Rin
-
-
 def _time_distributed_dense(x, w, b=None, dropout=None,
                             input_dim=None, output_dim=None,
                             timesteps=None, training=None):
@@ -206,7 +197,6 @@ class Recurrent(Layer):
         self.implementation = implementation
         self.supports_masking = True
         self.input_spec = [InputSpec(ndim=3)]
-        self.state_spec = None
         self.dropout = 0
         self.recurrent_dropout = 0
 
@@ -218,7 +208,7 @@ class Recurrent(Layer):
         else:
             shape = (input_shape[0], self.units)
         if self.return_all_states:
-            return shape[:2] + (self.num_states,) + shape[2:]
+            return [shape] * self.NUM_STATES
         else:
             return shape
 
@@ -226,9 +216,11 @@ class Recurrent(Layer):
         if self.return_sequences:
             if isinstance(mask, list):
                 mask = mask[0]
-            return mask
         else:
-            return None
+            mask = None
+        if self.return_all_states:
+            return [mask] * self.NUM_STATES
+        return mask
 
     def step(self, inputs, states):
         raise NotImplementedError
@@ -298,7 +290,6 @@ class Recurrent(Layer):
             inputs = inputs[0]
         elif initial_state is not None:
             pass
-
         elif self.stateful:
             initial_state = self.states
         else:
@@ -347,8 +338,8 @@ class Recurrent(Layer):
             last_output._uses_learning_phase = True
             outputs._uses_learning_phase = True
        
-        last_states = K.stack(last_states, axis = 2)
-        states = K.stack(states, axis = 2)
+        #last_states = K.stack(last_states, axis = 2)
+        #states = K.stack(states, axis = 2)
 
         return last_output, outputs, last_states, states
 
@@ -434,7 +425,7 @@ class Recurrent(Layer):
         # initialize state if None
         if self.states[0] is None:
             self.states = [K.zeros((batch_size, self.units))
-                           for _ in range(self.num_states)]
+                           for _ in range(self.NUM_STATES)]
         elif states is None:
             for state in self.states:
                 K.set_value(state, np.zeros((batch_size, self.units)))
@@ -456,6 +447,256 @@ class Recurrent(Layer):
                                      ', found shape=' + str(value.shape))
                 K.set_value(state, value)
 
+class QRecurrent(Recurrent):
+
+    def __init__(self, kernel_size, padding="causal", dilation_rate=1, **kwargs):
+        super(QRecurrent, self).__init__(**kwargs)
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.dilation_rate = dilation_rate
+
+    def get_config(self):
+        config = {'kernel_size': self.kernel_size,
+                  'padding': self.padding,
+                  'dilation_rate': self.dilation_rate,
+                  'activation': activations.serialize(self.activation),
+                  'recurrent_activation': activations.serialize(self.recurrent_activation),
+                  'use_bias': self.use_bias,
+                  'kernel_initializer': initializers.serialize(self.kernel_initializer),
+                  'recurrent_initializer': initializers.serialize(self.recurrent_initializer),
+                  'bias_initializer': initializers.serialize(self.bias_initializer),
+                  'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+                  'recurrent_regularizer': regularizers.serialize(self.recurrent_regularizer),
+                  'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+                  'activity_regularizer': regularizers.serialize(self.activity_regularizer),
+                  'kernel_constraint': constraints.serialize(self.kernel_constraint),
+                  'recurrent_constraint': constraints.serialize(self.recurrent_constraint),
+                  'bias_constraint': constraints.serialize(self.bias_constraint),
+                  'dropout': self.dropout,
+                  'units': self.units}
+        base_config = super(QRecurrent, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def preprocess_input(self, inputs, training=None):
+        input_shape = K.int_shape(inputs)
+        input_dim = input_shape[2]
+        timesteps = input_shape[1]
+
+        x = K.conv1d(inputs, self.kernel, strides=1, padding=self.padding, data_format="channels_last", dilation_rate=self.dilation_rate)
+        
+        if self.use_bias:
+            x = K.bias_add(x, self.bias)
+   
+        if self.dropout is not None and 0. < self.dropout < 1.:
+            ones = K.ones_like(K.reshape(x[:, 0, :], (-1, input_dim)))
+            dropout_matrix = K.dropout(ones, self.dropout)
+            expanded_dropout_matrix = K.repeat(dropout_matrix, timesteps)
+            x = K.in_train_phase(x * expanded_dropout_matrix, x, training=training)
+        
+        return x
+
+
+class QLSTM(QRecurrent):
+    NUM_STATES = 6
+
+    def step(self, inputs, states):
+        c_tm1 = states[1]
+
+        _i = inputs[:, :self.units]
+        _f = inputs[:, self.units: 2 * self.units]
+        _hh = inputs[:, 2 * self.units: 3 * self.units]
+        _o = inputs[:, 3 * self.units:]
+
+        hh = self.activation(_hh)
+        i = self.recurrent_activation(_i)
+        o = self.recurrent_activation(_o)
+        f = self.recurrent_activation(_f)
+
+        c = f * c_tm1 + i * hh
+        h = o * self.activation(c)
+        
+        return h, [h, c, i, f, o, hh]
+    
+    @interfaces.legacy_recurrent_support
+    def __init__(self, units,
+                 activation='tanh',
+                 recurrent_activation='hard_sigmoid',
+                 use_bias=True,
+                 kernel_initializer='glorot_uniform',
+                 recurrent_initializer='orthogonal',
+                 bias_initializer='zeros',
+                 unit_forget_bias=True,
+                 kernel_regularizer=None,
+                 recurrent_regularizer=None,
+                 bias_regularizer=None,
+                 activity_regularizer=None,
+                 kernel_constraint=None,
+                 recurrent_constraint=None,
+                 bias_constraint=None,
+                 dropout=0.,
+                 **kwargs):
+        super(QLSTM, self).__init__(**kwargs)
+    
+
+        self.units = units
+        self.activation = activations.get(activation)
+        self.recurrent_activation = activations.get(recurrent_activation)
+        self.use_bias = use_bias
+
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.recurrent_initializer = initializers.get(recurrent_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.unit_forget_bias = unit_forget_bias
+
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.recurrent_regularizer = regularizers.get(recurrent_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.activity_regularizer = regularizers.get(activity_regularizer)
+
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.recurrent_constraint = constraints.get(recurrent_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
+
+        self.dropout = min(1., max(0., dropout))
+        
+        self.state_spec = [InputSpec(shape=(None, self.units)) for _ in range(self.NUM_STATES)]
+    
+
+    def build(self, input_shape):
+        if isinstance(input_shape, list):
+            input_shape = input_shape[0]
+        
+        batch_size = input_shape[0] if self.stateful else None
+        self.input_dim = input_shape[-1]
+        self.input_spec[0] = InputSpec(shape=(batch_size, None, self.input_dim))
+
+        self.states = [None] * self.NUM_STATES
+        if self.stateful:
+            self.reset_states()
+
+
+        kernel_shape = (self.kernel_size, self.input_dim, self.units * 4)
+        self.kernel = self.add_weight(shape=kernel_shape,
+                                      name='kernel',
+                                      initializer=self.kernel_initializer,
+                                      regularizer=self.kernel_regularizer,
+                                      constraint=self.kernel_constraint)
+        if self.use_bias:
+            if self.unit_forget_bias:
+                def bias_initializer(shape, *args, **kwargs):
+                    return K.concatenate([
+                        self.bias_initializer((self.units,), *args, **kwargs),
+                        initializers.Ones()((self.units,), *args, **kwargs),
+                        self.bias_initializer((self.units * 2,), *args, **kwargs),
+                    ])
+            else:
+                bias_initializer = self.bias_initializer
+            self.bias = self.add_weight(shape=(self.units * 4,),
+                                        name='bias',
+                                        initializer=bias_initializer,
+                                        regularizer=self.bias_regularizer,
+                                        constraint=self.bias_constraint)
+        else:
+            self.bias = None
+
+        self.built = True
+    
+class QGRU(QRecurrent):
+    NUM_STATES = 3
+    @interfaces.legacy_recurrent_support
+    def __init__(self, units,
+                 activation='tanh',
+                 recurrent_activation='hard_sigmoid',
+                 use_bias=True,
+                 kernel_initializer='glorot_uniform',
+                 recurrent_initializer='orthogonal',
+                 bias_initializer='zeros',
+                 unit_forget_bias=True,
+                 kernel_regularizer=None,
+                 recurrent_regularizer=None,
+                 bias_regularizer=None,
+                 activity_regularizer=None,
+                 kernel_constraint=None,
+                 recurrent_constraint=None,
+                 bias_constraint=None,
+                 dropout=0.,
+                 **kwargs):
+        super(QGRU, self).__init__(**kwargs)
+    
+
+        self.units = units
+        self.activation = activations.get(activation)
+        self.recurrent_activation = activations.get(recurrent_activation)
+        self.use_bias = use_bias
+
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.recurrent_initializer = initializers.get(recurrent_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.unit_forget_bias = unit_forget_bias
+
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.recurrent_regularizer = regularizers.get(recurrent_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.activity_regularizer = regularizers.get(activity_regularizer)
+
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.recurrent_constraint = constraints.get(recurrent_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
+
+        self.dropout = min(1., max(0., dropout))
+        
+        self.state_spec = [InputSpec(shape=(None, self.units)) for _ in range(self.NUM_STATES)]
+    
+    def step(self, inputs, states):
+        h_tm1 = states[0]
+        
+        _z = inputs[:, :self.units]
+        _hh = inputs[:, self.units:]
+
+        hh = self.activation(_hh)
+        z = self.recurrent_activation(_z)
+
+        h = z * h_tm1 + (1-z) * hh
+
+        return h, [h, z, hh]
+    
+    def build(self, input_shape):
+        if isinstance(input_shape, list):
+            input_shape = input_shape[0]
+        
+        batch_size = input_shape[0] if self.stateful else None
+        self.input_dim = input_shape[-1]
+        self.input_spec[0] = InputSpec(shape=(batch_size, None, self.input_dim))
+
+        self.states = [None] * self.NUM_STATES
+        if self.stateful:
+            self.reset_states()
+
+
+        kernel_shape = (self.kernel_size, self.input_dim, self.units * 2)
+        self.kernel = self.add_weight(shape=kernel_shape,
+                                      name='kernel',
+                                      initializer=self.kernel_initializer,
+                                      regularizer=self.kernel_regularizer,
+                                      constraint=self.kernel_constraint)
+        if self.use_bias:
+            if self.unit_forget_bias:
+                def bias_initializer(shape, *args, **kwargs):
+                    return K.concatenate([
+                        self.bias_initializer((self.units,), *args, **kwargs),
+                        initializers.Ones()((self.units,), *args, **kwargs)
+                    ])
+            else:
+                bias_initializer = self.bias_initializer
+            self.bias = self.add_weight(shape=(self.units * 2,),
+                                        name='bias',
+                                        initializer=bias_initializer,
+                                        regularizer=self.bias_regularizer,
+                                        constraint=self.bias_constraint)
+        else:
+            self.bias = None
+
+        self.built = True
 
 class SimpleRNN(Recurrent):
     """Fully-connected RNN where the output is to be fed back to input.
@@ -506,6 +747,8 @@ class SimpleRNN(Recurrent):
         - [A Theoretically Grounded Application of Dropout in Recurrent Neural Networks](http://arxiv.org/abs/1512.05287)
     """
 
+
+    NUM_STATES = 1
     @interfaces.legacy_recurrent_support
     def __init__(self, units,
                  activation='tanh',
@@ -525,7 +768,6 @@ class SimpleRNN(Recurrent):
                  **kwargs):
         super(SimpleRNN, self).__init__(**kwargs)
         
-        self.num_states = 1
         
         self.units = units
         self.activation = activations.get(activation)
@@ -546,8 +788,8 @@ class SimpleRNN(Recurrent):
 
         self.dropout = min(1., max(0., dropout))
         self.recurrent_dropout = min(1., max(0., recurrent_dropout))
-        self.state_spec = InputSpec(shape=(None, self.units))
     
+        self.state_spec = [InputSpec(shape=(None, self.units)) for _ in range(self.NUM_STATES)]
     
 
     def build(self, input_shape):
@@ -558,7 +800,7 @@ class SimpleRNN(Recurrent):
         self.input_dim = input_shape[2]
         self.input_spec[0] = InputSpec(shape=(batch_size, None, self.input_dim))
 
-        self.states = [None] * self.num_states
+        self.states = [None] * self.NUM_STATES
         if self.stateful:
             self.reset_states()
 
@@ -729,6 +971,7 @@ class GRU(Recurrent):
         - [A Theoretically Grounded Application of Dropout in Recurrent Neural Networks](http://arxiv.org/abs/1512.05287)
     """
 
+    NUM_STATES = 4
     @interfaces.legacy_recurrent_support
     def __init__(self, units,
                  activation='tanh',
@@ -749,7 +992,6 @@ class GRU(Recurrent):
                  **kwargs):
         super(GRU, self).__init__(**kwargs)
         
-        self.num_states = 4
         self.units = units
         self.activation = activations.get(activation)
         self.recurrent_activation = activations.get(recurrent_activation)
@@ -770,8 +1012,8 @@ class GRU(Recurrent):
 
         self.dropout = min(1., max(0., dropout))
         self.recurrent_dropout = min(1., max(0., recurrent_dropout))
-        self.state_spec = InputSpec(shape=(None, self.units))
 
+        self.state_spec = [InputSpec(shape=(None, self.units)) for _ in range(self.NUM_STATES)]
     
     
     
@@ -783,7 +1025,7 @@ class GRU(Recurrent):
         self.input_dim = input_shape[2]
         self.input_spec[0] = InputSpec(shape=(batch_size, None, self.input_dim))
 
-        self.states = [None] * self.num_states
+        self.states = [None] * self.NUM_STATES
         if self.stateful:
             self.reset_states()
 
@@ -1014,6 +1256,7 @@ class LSTM(Recurrent):
         - [Supervised sequence labeling with recurrent neural networks](http://www.cs.toronto.edu/~graves/preprint.pdf)
         - [A Theoretically Grounded Application of Dropout in Recurrent Neural Networks](http://arxiv.org/abs/1512.05287)
     """
+    NUM_STATES = 6
     @interfaces.legacy_recurrent_support
     def __init__(self, units,
                  activation='tanh',
@@ -1035,7 +1278,6 @@ class LSTM(Recurrent):
                  **kwargs):
         super(LSTM, self).__init__(**kwargs)
     
-        self.num_states = 6
 
         self.units = units
         self.activation = activations.get(activation)
@@ -1058,8 +1300,8 @@ class LSTM(Recurrent):
 
         self.dropout = min(1., max(0., dropout))
         self.recurrent_dropout = min(1., max(0., recurrent_dropout))
-        self.state_spec = [InputSpec(shape=(None, self.units)),
-                           InputSpec(shape=(None, self.units))]
+        
+        self.state_spec = [InputSpec(shape=(None, self.units)) for _ in range(self.NUM_STATES)]
     
 
     def build(self, input_shape):
@@ -1070,7 +1312,7 @@ class LSTM(Recurrent):
         self.input_dim = input_shape[2]
         self.input_spec[0] = InputSpec(shape=(batch_size, None, self.input_dim))
 
-        self.states = [None] * self.num_states
+        self.states = [None] * self.NUM_STATES
         if self.stateful:
             self.reset_states()
 
