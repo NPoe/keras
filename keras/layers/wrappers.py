@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import copy
 import numpy as np
 import inspect
-from .recurrent import GRU, LSTM
+from .recurrent import GRU, LSTM, QLSTM, QGRU
 from .embeddings import Embedding
 from ..engine import Layer
 from ..engine import InputSpec
@@ -450,7 +450,7 @@ class EmbeddingWrapper(Wrapper):
 		averaged_embedding = K.expand_dims(averaged_embedding, 1) # 1/batches, 1, embsize
 		subtracted = orig_score - averaged_embedding
 		
-		mask = self.layer.compute_mask(inputs) # batches, samples
+		mask = self.layer.compute_mask(inputs)[0] # batches, samples
 		if not mask is None:
 			mask = K.expand_dims(mask, -1)
 			subtracted *= mask
@@ -608,7 +608,8 @@ class Decomposition(Wrapper):
             
             self.ngram = ngram
 
-            assert isinstance(self.layer, LSTM) or isinstance(self.layer, GRU)
+            if not any([isinstance(self.layer, t) for t in (LSTM, GRU, QLSTM, QGRU)]):
+                raise Exception("Invalid layer for decomposition:", self.layer)
             assert self.ngram >= 1
 
             self.layer.go_backwards = go_backwards or self.layer.go_backwards
@@ -656,14 +657,19 @@ class Decomposition(Wrapper):
 
             _, _, _, states = self.layer._call(inputs, mask = mask)
             
-            if isinstance(self.layer, GRU):
-                cells = states[:,:,0] # hidden states
-                forget_gates = states[:,:,1] # z gates
+            if isinstance(self.layer, GRU) or isinstance(self.layer, QGRU):
+                #cells = states[:,:,0] # hidden states
+                #forget_gates = states[:,:,1] # z gates
+                cells = states[0] # hidden states
+                forget_gates = states[1] # z gates
 
-            elif isinstance(self.layer, LSTM):
-                cells = states[:,:,1] # memory cells
-                forget_gates = states[:,:,3] # forget gates
-                out_gates = states[:,:,4] # out gates
+            elif isinstance(self.layer, LSTM) or isinstance(self.layer, QLSTM):
+                #cells = states[:,:,1] # memory cells
+                #forget_gates = states[:,:,3] # forget gates
+                #out_gates = states[:,:,4] # out gates
+                cells = states[1] # memory cells
+                forget_gates = states[3] # forget gates
+                out_gates = states[4] # out gates
 
             input_length = input_shape[1]
             if not input_length:
@@ -686,7 +692,7 @@ class Decomposition(Wrapper):
                 
             cells_stacked *= self.compute_forget_mask(mask_stacked, forget_gates)
 
-            if isinstance(self.layer, LSTM):
+            if isinstance(self.layer, LSTM) or isinstance(self.layer, QLSTM):
                 cells_stacked = activations.get(self.activation)(cells_stacked)
             
             for i in range(2, cells.ndim):
