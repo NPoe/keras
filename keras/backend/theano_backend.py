@@ -999,8 +999,12 @@ def temporal_padding(x, padding=(1, 1)):
     output = T.zeros(output_shape)
     result = T.set_subtensor(output[:, padding[0]:x.shape[1] + padding[0], :], x)
     if hasattr(x, '_keras_shape'):
+        if x._keras_shape[1] is None:
+            tmp = None
+        else:
+            tmp = x._keras_shape[1] + py_sum(padding)
         result._keras_shape = (x._keras_shape[0],
-                               x._keras_shape[1] + py_sum(padding),
+                               tmp,
                                x._keras_shape[2])
     return result
 
